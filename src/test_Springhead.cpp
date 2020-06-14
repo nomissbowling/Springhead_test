@@ -6,6 +6,61 @@
 
 #include <test_Springhead.h>
 
+PHSolidIf *CreateBox(FWSdkIf *fwSdk){
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 0.033;
+  PHSolidIf *soBox = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDBoxDesc bd;
+  bd.boxsize = Vec3f(2, 2, 2);
+  CDShapeIf *shapeBox = fwSdk->GetPHSdk()->CreateShape(bd);
+  soBox->AddShape(shapeBox);
+  soBox->SetFramePosition(Vec3d(0, 10, 0));
+  return soBox;
+}
+
+PHSolidIf *CreateSphere(FWSdkIf *fwSdk){
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 0.03;
+  PHSolidIf *soSphere = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDSphereDesc sd;
+  sd.radius = 2.0;
+  CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
+  soSphere->AddShape(shapeSphere);
+  soSphere->SetFramePosition(Vec3d(0, 15, 0));
+  return soSphere;
+}
+
+PHSolidIf *CreateCapsule(FWSdkIf *fwSdk){
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 1;
+  PHSolidIf *soCapsule = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDCapsuleDesc cd;
+  cd.length = 3.0;
+  cd.radius = 1.0;
+  CDShapeIf *shapeCapsule = fwSdk->GetPHSdk()->CreateShape(cd);
+  soCapsule->AddShape(shapeCapsule);
+  soCapsule->SetFramePosition(Vec3d(0, 15, 0));
+  return soCapsule;
+}
+
+PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk){
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 1;
+  PHSolidIf *soRCone = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDRoundConeDesc rd;
+  rd.length = 3.0;
+  rd.radius[0] = 1.5;
+  rd.radius[1] = 0.5;
+  CDShapeIf *shapeRCone = fwSdk->GetPHSdk()->CreateShape(rd);
+  soRCone->AddShape(shapeRCone);
+  soRCone->SetFramePosition(Vec3d(0, 15, 0));
+  return soRCone;
+}
+
 MyApp::MyApp() : FWApp()
 {
   bDrawInfo = false;
@@ -61,7 +116,6 @@ void MyApp::Keyboard(int key, int x, int y)
   case 'd':
     bDrawInfo = !bDrawInfo;
     break;
-/*
   case '1':
     DSTR << "box" << std::endl;
     CreateBox(GetSdk());
@@ -78,7 +132,6 @@ void MyApp::Keyboard(int key, int x, int y)
     DSTR << "roundcone" << std::endl;
     CreateRoundCone(GetSdk());
     break;
-*/
   default: break;
   }
 }
