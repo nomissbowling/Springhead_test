@@ -7,6 +7,8 @@
 #include <Springhead.h>
 #include <Framework/SprFWApp.h>
 
+#include <test_Springhead.h>
+
 using namespace Spr;
 
 class MyApp : public FWApp {
@@ -35,6 +37,7 @@ public:
 int main(int ac, char **av)
 {
   fprintf(stdout, "sizeof(size_t): %zd\n", sizeof(size_t));
+  fprintf(stdout, "%s\n", TEST_WORD);
   app.Init(ac, av);
   app.StartMainLoop();
   return 0;

@@ -3,6 +3,9 @@ Springhead_test
 
 Springhead test
 
+get clone from GitHub Springhead with submodule dependencies
+- git clone --recurse-submodules https://github.com/sprphys/Springhead.git
+
 mkdir
 - mkdir ../../Springhead/build
 
@@ -25,6 +28,7 @@ build (Visual Studio 2017)
 new solution and project
 - test_Springhead/test_Springhead.sln (empty)
 - test_Springhead/test_Springhead/test_Springhead.vcxproj (empty) Release x64
+- append include/test_Springhead.h
 - append src/test_Springhead.cpp
 - project property (change output directory etc) active Release x64
 
@@ -34,7 +38,7 @@ source path
 include path
 - ../../Springhead_test/include
 - ../../Springhead/core/include
-- ../../Springhead/core/src
+- ../../Springhead/core/src (need to use .hpp etc)
 
 library path
 - ../../Springhead/generated/lib/win64
