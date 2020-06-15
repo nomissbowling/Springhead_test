@@ -6,7 +6,24 @@
 
 #include <test_Springhead.h>
 
-PHSolidIf *CreateConvexMesh(FWSdkIf *fwSdk)
+void DispVertices(CDShapeIf *shapeCvx)
+{
+  CDConvexMeshIf *mesh = shapeCvx->Cast();
+  fprintf(stdout, "ConvexMesh: Vertex %d\n", mesh->NVertex());
+  fprintf(stdout, "ConvexMesh: Faces %d\n", mesh->NFace());
+  for(int i = 0; i < mesh->NFace(); ++i){
+    CDFaceIf *face = mesh->GetFace(i);
+    fprintf(stdout, "ConvexMesh: Face[%d] Index %d\n", i, face->NIndex());
+    int *indices = face->GetIndices();
+    for(int j = 0; j < face->NIndex(); ++j){
+      Vec3f v = mesh->GetVertices()[indices[j]];
+      fprintf(stdout, "ConvexMesh: Face[%d] Vertex[%d] (%5.3f %5.3f %5.3f)\n",
+        i, j, v.x, v.y, v.z);
+    }
+  }
+}
+
+PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 {
   std::vector<Vec3f> vertices = {
     Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1)};
@@ -22,9 +39,36 @@ PHSolidIf *CreateConvexMesh(FWSdkIf *fwSdk)
   CDConvexMeshDesc cmd;
   cmd.vertices = vertices;
 //  cmd.faces = faces; // not defined
+  cmd.material.density = 1.0;
+  cmd.material.e = 1.0f;
   CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
   cvx->AddShape(shapeCvx);
   cvx->SetFramePosition(Vec3d(0, 2, 0));
+  DispVertices(shapeCvx); // 4 - 4 - 3
+  // 100 000 010, 100 010 001, 010 000 001, 000 100 001
+  return cvx;
+}
+
+PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
+{
+  std::vector<Vec3f> vertices = {
+    Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1),
+    Vec3f(1, 1, 0), Vec3f(1, 0, 1), Vec3f(0, 1, 1), Vec3f(1, 1, 1)};
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 0.033;
+  PHSolidIf *cvx = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDConvexMeshDesc cmd;
+  cmd.vertices = vertices;
+  cmd.material.density = 1.0;
+  cmd.material.e = 1.0f;
+  CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
+  cvx->AddShape(shapeCvx);
+  cvx->SetFramePosition(Vec3d(0, 2, 0));
+  DispVertices(shapeCvx); // 8 - 12 - 3
+  // 001 100 101, 110 000 010, 000 011 010, 101 110 111,
+  // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
+  // 100 000 110, 011 001 101, 100 110 101, 011 110 010
   return cvx;
 }
 
@@ -154,9 +198,13 @@ void MyApp::Keyboard(int key, int x, int y)
   case 'd':
     bDrawInfo = !bDrawInfo;
     break;
+  case '-':
+    DSTR << "convexmeshcube" << std::endl;
+    CreateConvexMeshCube(GetSdk());
+    break;
   case '0':
-    DSTR << "convexmesh" << std::endl;
-    CreateConvexMesh(GetSdk());
+    DSTR << "convexmeshtetra" << std::endl;
+    CreateConvexMeshTetra(GetSdk());
     break;
   case '1':
     DSTR << "box" << std::endl;
