@@ -6,7 +6,30 @@
 
 #include <test_Springhead.h>
 
-PHSolidIf *CreateBox(FWSdkIf *fwSdk){
+PHSolidIf *CreateConvexMesh(FWSdkIf *fwSdk)
+{
+  std::vector<Vec3f> vertices = {
+    Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1)};
+//  int indices[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 3}};
+//  CDFaceDesc fd[4]; // not defined
+//  for(int i = 0; i < 4; ++i) fd[i].indices = &indices[i];
+//  CDFaceIf *faces[4] = new CDFaceIf *[4];
+//  for(int i = 0; i < 4; ++i) faces[i] = fwSdk->GetPHSdk()->CreateShape(fd[i]);
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 0.033;
+  PHSolidIf *cvx = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDConvexMeshDesc cmd;
+  cmd.vertices = vertices;
+//  cmd.faces = faces; // not defined
+  CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
+  cvx->AddShape(shapeCvx);
+  cvx->SetFramePosition(Vec3d(0, 2, 0));
+  return cvx;
+}
+
+PHSolidIf *CreateBox(FWSdkIf *fwSdk)
+{
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
@@ -19,7 +42,8 @@ PHSolidIf *CreateBox(FWSdkIf *fwSdk){
   return soBox;
 }
 
-PHSolidIf *CreateSphere(FWSdkIf *fwSdk){
+PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
+{
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.03;
@@ -32,7 +56,8 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk){
   return soSphere;
 }
 
-PHSolidIf *CreateCapsule(FWSdkIf *fwSdk){
+PHSolidIf *CreateCapsule(FWSdkIf *fwSdk)
+{
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 1;
@@ -46,7 +71,8 @@ PHSolidIf *CreateCapsule(FWSdkIf *fwSdk){
   return soCapsule;
 }
 
-PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk){
+PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk)
+{
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 1;
@@ -127,6 +153,10 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case 'd':
     bDrawInfo = !bDrawInfo;
+    break;
+  case '0':
+    DSTR << "convexmesh" << std::endl;
+    CreateConvexMesh(GetSdk());
     break;
   case '1':
     DSTR << "box" << std::endl;
