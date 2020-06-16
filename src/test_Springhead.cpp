@@ -6,6 +6,65 @@
 
 #include <test_Springhead.h>
 
+float PNR[][2] = {
+  {    15.0f, 0.800f}, // 0.000f}, //
+  {14+1/2.0f, 1.870f}, //
+  {    14.0f, 2.472f}, //
+  {13+1/2.0f, 2.547f},
+  {12+5/8.0f, 2.406f},
+  {11+3/4.0f, 2.094f},
+  {10+7/8.0f, 1.870f},
+  {    10.0f, 1.797f},
+  { 9+3/8.0f, 1.965f},
+  { 8+5/8.0f, 2.472f},
+  { 7+1/4.0f, 3.703f},
+  { 5+7/8.0f, 4.563f},
+  { 4+1/2.0f, 4.766f},
+  { 3+3/8.0f, 4.510f},
+  { 2+1/4.0f, 3.906f},
+  {   3/4.0f, 2.828f},
+  {     0.0f, 2.250f}};
+int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+
+PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
+{
+  float pi = 3.14159265358979323846264338327950288419716939937510f;
+  float r = 0.2f;
+  int t = 18; // 12;
+  const int m = sizeof(PNR) / sizeof(PNR[0]);
+  const int l = sizeof(PNI) / sizeof(PNI[0]);
+  PHSolidIf *cvxs[l];
+  for(int i = 0; i < l; ++i){
+    int n = PNI[i][1] - PNI[i][0] + 1;
+    std::vector<Vec3f> vertices(n * t);
+    float o[2], q[2];
+    for(int j = 0; j < n; ++j){
+      float *p = &PNR[m - (j + PNI[i][0]) - 1][0];
+      float p0 = p[0] * r, p1 = p[1] * r / 2.0f;
+      if(!j) o[0] = p0, q[0] = p1; else if(j == n - 1) o[1] = p0, q[1] = p1;
+      for(int k = 0; k < t; ++k){
+        float th = 2.0f * pi * k / t;
+        vertices[j * t + k].x = p1 * cos(th);
+        vertices[j * t + k].y = p0;
+        vertices[j * t + k].z = p1 * sin(th);
+      }
+    }
+    PHSolidDesc desc;
+    desc.mass = (o[1] - o[0]) * (q[0] + q[1]) / 2.0f;
+    desc.inertia *= 0.033;
+    cvxs[i] = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+    CDConvexMeshDesc cmd;
+    cmd.vertices = vertices;
+    cmd.material.density = 1.0;
+    cmd.material.e = 1.0f;
+    CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
+    cvxs[i]->AddShape(shapeCvx);
+    cvxs[i]->SetFramePosition(Vec3d(0, 5, 0));
+//    DispVertices(shapeCvx);
+  }
+  return cvxs[0];
+}
+
 void DispVertices(CDShapeIf *shapeCvx)
 {
   CDConvexMeshIf *mesh = shapeCvx->Cast();
@@ -197,6 +256,10 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case 'd':
     bDrawInfo = !bDrawInfo;
+    break;
+  case '.':
+    DSTR << "convexmeshpin" << std::endl;
+    CreateConvexMeshPin(GetSdk());
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
