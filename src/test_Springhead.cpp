@@ -26,7 +26,7 @@ float PNR[][2] = {
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
-PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
+PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
 {
   PHSceneIf *phScene = fwSdk->GetScene()->GetPHScene();
   float pi = 3.14159265358979323846264338327950288419716939937510f;
@@ -77,7 +77,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
     cvxs[i]->SetCenterOfMass(shapeCvx->CalcCenterOfMass());
     cvxs[i]->SetInertia(shapeCvx->CalcMomentOfInertia());
     cvxs[i]->AddShape(shapeCvx);
-    cvxs[i]->SetFramePosition(Vec3d(0, 5 + o[0], 0));
+    cvxs[i]->SetFramePosition(pos + Vec3d(0.0, o[0], 0.0));
 //    DispVertices(shapeCvx);
     if(i == 0) prev = o[0];
     else{
@@ -315,7 +315,7 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case '.':
     DSTR << "convexmeshpin" << std::endl;
-    CreateConvexMeshPin(GetSdk());
+    CreateConvexMeshPin(GetSdk(), Vec3d(0, 5, 0));
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
@@ -451,6 +451,9 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   hjd.poseSocket.Pos() = Vec3d(1.0, 0.0, 0.0);
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
   PHHingeJointIf *joint = phScene->CreateJoint(sol0, sol1, hjd)->Cast();
+
+  for(int i = 0; i < 10; ++i)
+    CreateConvexMeshPin(GetSdk(), Vec3d(i * 1.5 - 5.0, -1.0, 5.0));
 }
 
 void MyApp::Reset()
