@@ -45,7 +45,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
       for(int k = 0; k < t; ++k){
         float th = 2.0f * pi * k / t;
         vertices[j * t + k].x = p1 * cos(th);
-        vertices[j * t + k].y = p0;
+        vertices[j * t + k].y = p0 - o[0];
         vertices[j * t + k].z = p1 * sin(th);
       }
     }
@@ -59,7 +59,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
     cmd.material.e = 1.0f;
     CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
     cvxs[i]->AddShape(shapeCvx);
-    cvxs[i]->SetFramePosition(Vec3d(0, 5, 0));
+    cvxs[i]->SetFramePosition(Vec3d(0, 5 + o[0], 0));
 //    DispVertices(shapeCvx);
   }
   return cvxs[0];
