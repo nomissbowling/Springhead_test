@@ -89,7 +89,6 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
       // PHContactPoint jd; // PHConstraint (auto generated)
       // F = springK(targetPosition - p) + damperD(targetVelocity - v) + offset
       jd.bEnabled = true; // bool (PHConstraint)
-      // jd.range = Vec2d(0, 0); // Vec2d (PH1DJointLimit)
       jd.spring = 1000; // Vec3d (PHSpring) double (otherwise)
       jd.damper = 1000; // Vec3d (PHSpring) double (otherwise)
       // jd.springOri = ; // double (PHSpring)
@@ -105,6 +104,12 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
       jd.posePlug.Pos() = Vec3d(0, 0, 0);
       jd.posePlug.Ori() = Quaterniond::Rot(Rad(0.0), 'y');
       jois[i - 1] = phScene->CreateJoint(cvxs[i - 1], cvxs[i], jd)->Cast();
+      PH1DJointLimitDesc jld;
+      jld.spring = 1000;
+      jld.damper = 1000;
+      jld.range = Vec2d(0, 0.001); // Vec2d (PH1DJointLimit)
+      PHHingeJointIf *joint = jois[i - 1]->Cast();
+      joint->CreateLimit(jld);
       prev = o[0];
       // PHIKEngineIf *ike = phScene->GetIKEngine();
       // ike->Enable(true);
@@ -118,6 +123,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
       // ika->AddChildObject(ikee);
     }
   }
+  phScene->SetContactMode(cvxs, l, PHSceneDesc::MODE_NONE); // parts of solids
   return cvxs[0];
 }
 
@@ -383,6 +389,7 @@ void MyApp::CreateObjects()
 fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 /**/
   phScene->SetTimeStep(0.050); // default == 0.005
+  phScene->SetContactMode(PHSceneDesc::MODE_LCP); // all default == MODE_LCP
   GetSdk()->SetDebugMode(true); // true works without camera light etc
 
 /*
