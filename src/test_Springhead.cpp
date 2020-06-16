@@ -81,14 +81,41 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
 //    DispVertices(shapeCvx);
     if(i == 0) prev = o[0];
     else{
-      PHHingeJointDesc jd;
-      // PHSliderJointDesc jd;
+      PHHingeJointDesc jd; // PHJoint1D PHJoint PHConstraint
+      // PHSliderJointDesc jd; // PHJoint1D PHJoint PHConstraint
+      // PHPathJointDesc jd; // PHJoint1D PHJoint PHConstraint
+      // PHBallJoint jd; // PHJoint PHConstraint
+      // PHSpring jd; // PHJoint PHConstraint
+      // PHContactPoint jd; // PHConstraint (auto generated)
+      // F = springK(targetPosition - p) + damperD(targetVelocity - v) + offset
+      jd.bEnabled = true; // bool (PHConstraint)
+      // jd.range = Vec2d(0, 0); // Vec2d (PH1DJointLimit)
+      jd.spring = 1000; // Vec3d (PHSpring) double (otherwise)
+      jd.damper = 1000; // Vec3d (PHSpring) double (otherwise)
+      // jd.springOri = ; // double (PHSpring)
+      // jd.damperOri = ; // double (PHSpring)
+      // jd.targetPosition = ; // Quaterniond (PHBallJoint) double (PHJoint1D)
+      // jd.targetVelocity = ; // Vec3d (PHBallJoint) double (PHJoint1D)
+      // jd.offsetForce = ; // Vec3d (PHBallJoint) double (PHJoint1D)
+      jd.fMax = 1000; // Vec3d (PHBallJoint) double (PHJoint1D)
+      // jd.limitSwing = ; // Vec2d (PHBallJointConeLimit)
+      // jd.limitTwist = ; // Vec2d (PHBallJointConeLimit)
       jd.poseSocket.Pos() = Vec3d(0, o[0] - prev, 0);
       jd.poseSocket.Ori() = Quaterniond::Rot(Rad(0.0), 'y');
       jd.posePlug.Pos() = Vec3d(0, 0, 0);
       jd.posePlug.Ori() = Quaterniond::Rot(Rad(0.0), 'y');
       jois[i - 1] = phScene->CreateJoint(cvxs[i - 1], cvxs[i], jd)->Cast();
       prev = o[0];
+      // PHIKEngineIf *ike = phScene->GetIKEngine();
+      // ike->Enable(true);
+      // ike->SetNumIter(20);
+      // PHIKHingeActuatorDesc ad;
+      // PHIKHingeActuatorIf *ika = phScene->CreateIKActuator(ad);
+      // ika->AddChildObject(jois[i - 1]);
+      // PHIKEndEffectorDesc ed;
+      // PHIKEndEffectorIf *ikee = phScene->CreateIKEndEffector(ed);
+      // ikee->AddChildObject(cvxs[i - 1]);
+      // ika->AddChildObject(ikee);
     }
   }
   return cvxs[0];
@@ -355,7 +382,7 @@ void MyApp::CreateObjects()
   fprintf(stdout, "Scene timeStep: %20.17f\n", phScene->GetTimeStep());
 fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 /**/
-  phScene->SetTimeStep(0.005); // default == 0.005
+  phScene->SetTimeStep(0.050); // default == 0.005
   GetSdk()->SetDebugMode(true); // true works without camera light etc
 
 /*
@@ -392,7 +419,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   PHSolidIf *floor = phScene->CreateSolid();
   floor->SetDynamical(false);
   floor->SetMass(1000.0);
-  bd.boxsize = Vec3f(5.0f, 1.0f, 5.0f);
+  bd.boxsize = Vec3f(20.0f, 0.1f, 20.0f);
   floor->AddShape(phSdk->CreateShape(bd));
   floor->SetFramePosition(Vec3d(0, -1.0, 0));
 
