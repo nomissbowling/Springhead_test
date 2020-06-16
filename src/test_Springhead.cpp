@@ -459,8 +459,18 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
   PHHingeJointIf *joint = phScene->CreateJoint(sol0, sol1, hjd)->Cast();
 
-  for(int i = 0; i < 10; ++i)
-    CreateConvexMeshPin(GetSdk(), Vec3d(i * 1.5 - 5.0, -1.0, 5.0));
+/*
+    0      j = 0  i = 0             0
+   2 1         1      1, 2          0 1
+  5 4 3        2      3, 4, 5       0 1 2
+ 9 8 7 6       3      6, 7, 8, 9    0 1 2 3
+*/
+  double pnp = 3; // 2.0 * 30.48 / (40.0 * 2.0);
+  double pnq = pnp * sqrt(3.0) / 2.0;
+  for(int k = 0, j = 0; j < 4; ++j)
+    for(int i = 0; ++k, i < j + 1; ++i)
+      CreateConvexMeshPin(GetSdk(),
+        Vec3d(-1.0 - j * pnq, -1.0, i * pnp - j * pnp / 2.0));
 }
 
 void MyApp::Reset()
