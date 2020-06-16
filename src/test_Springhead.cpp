@@ -28,16 +28,18 @@ int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
 {
+  PHSceneIf *phScene = fwSdk->GetScene()->GetPHScene();
   float pi = 3.14159265358979323846264338327950288419716939937510f;
   float r = 0.2f;
   int t = 18; // 12;
   const int m = sizeof(PNR) / sizeof(PNR[0]);
   const int l = sizeof(PNI) / sizeof(PNI[0]);
+  PHJointIf *jois[l - 1];
   PHSolidIf *cvxs[l];
   for(int i = 0; i < l; ++i){
     int n = PNI[i][1] - PNI[i][0] + 1;
     std::vector<Vec3f> vertices(n * t);
-    float o[2], q[2];
+    float prev, o[2], q[2];
     for(int j = 0; j < n; ++j){
       float *p = &PNR[m - (j + PNI[i][0]) - 1][0];
       float p0 = p[0] * r, p1 = p[1] * r / 2.0f;
@@ -59,7 +61,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
     // desc.pose = Posed();
     // desc.pose.Pos() = Vec3d(0, 0, 0); // relation from mass center ?
     // desc.pose.Ori() = Quaterniond::Rot(Rad(360.0), 'y');
-    cvxs[i] = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+    cvxs[i] = phScene->CreateSolid(desc);
     CDConvexMeshDesc cmd;
     cmd.vertices = vertices;
     cmd.material.density = 1.0;
@@ -77,6 +79,17 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
     cvxs[i]->AddShape(shapeCvx);
     cvxs[i]->SetFramePosition(Vec3d(0, 5 + o[0], 0));
 //    DispVertices(shapeCvx);
+    if(i == 0) prev = o[0];
+    else{
+      PHHingeJointDesc jd;
+      // PHSliderJointDesc jd;
+      jd.poseSocket.Pos() = Vec3d(0, o[0] - prev, 0);
+      jd.poseSocket.Ori() = Quaterniond::Rot(Rad(0.0), 'y');
+      jd.posePlug.Pos() = Vec3d(0, 0, 0);
+      jd.posePlug.Ori() = Quaterniond::Rot(Rad(0.0), 'y');
+      jois[i - 1] = phScene->CreateJoint(cvxs[i - 1], cvxs[i], jd)->Cast();
+      prev = o[0];
+    }
   }
   return cvxs[0];
 }
@@ -342,7 +355,7 @@ void MyApp::CreateObjects()
   fprintf(stdout, "Scene timeStep: %20.17f\n", phScene->GetTimeStep());
 fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 /**/
-  phScene->SetTimeStep(0.001); // default == 0.005
+  phScene->SetTimeStep(0.005); // default == 0.005
   GetSdk()->SetDebugMode(true); // true works without camera light etc
 
 /*
