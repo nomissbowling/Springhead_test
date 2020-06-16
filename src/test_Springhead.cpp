@@ -52,12 +52,28 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk)
     PHSolidDesc desc;
     desc.mass = (o[1] - o[0]) * (q[0] + q[1]) / 2.0f;
     desc.inertia *= 0.033;
+    desc.center = Vec3d(0, 0, 0);
+    desc.dynamical = true;
+    // desc.velocity = Vec3d(0, 0, 0);
+    // desc.angVelocity = Vec3d(0, 0, 0);
+    // desc.pose = Posed();
+    // desc.pose.Pos() = Vec3d(0, 0, 0); // relation from mass center ?
+    // desc.pose.Ori() = Quaterniond::Rot(Rad(360.0), 'y');
     cvxs[i] = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
     CDConvexMeshDesc cmd;
     cmd.vertices = vertices;
     cmd.material.density = 1.0;
+    // cmd.material.mu0 = ;
+    // cmd.material.mu = ;
     cmd.material.e = 1.0f;
+    // cmd.material.reflexSpring = ;
+    // cmd.material.reflexDamper = ;
+    // cmd.material.frictionSpring = ;
+    // cmd.material.frictionDamper = ;
     CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
+    cvxs[i]->SetMass(shapeCvx->CalcVolume() * shapeCvx->GetDensity());
+    cvxs[i]->SetCenterOfMass(shapeCvx->CalcCenterOfMass());
+    cvxs[i]->SetInertia(shapeCvx->CalcMomentOfInertia());
     cvxs[i]->AddShape(shapeCvx);
     cvxs[i]->SetFramePosition(Vec3d(0, 5 + o[0], 0));
 //    DispVertices(shapeCvx);
