@@ -6,6 +6,36 @@
 
 #include <test_Springhead.h>
 
+void DispVertices(CDShapeIf *shapeCvx)
+{
+  CDConvexMeshIf *mesh = shapeCvx->Cast();
+  fprintf(stdout, "ConvexMesh: Vertex %d\n", mesh->NVertex());
+  fprintf(stdout, "ConvexMesh: Faces %d\n", mesh->NFace());
+  for(int i = 0; i < mesh->NFace(); ++i){
+    CDFaceIf *face = mesh->GetFace(i);
+    fprintf(stdout, "ConvexMesh: Face[%d] Index %d\n", i, face->NIndex());
+    int *indices = face->GetIndices();
+    for(int j = 0; j < face->NIndex(); ++j){
+      Vec3f v = mesh->GetVertices()[indices[j]];
+      fprintf(stdout, "ConvexMesh: Face[%d] Vertex[%d] (%5.3f %5.3f %5.3f)\n",
+        i, j, v.x, v.y, v.z);
+    }
+  }
+}
+
+void DispSolidInf(PHSolidIf *sol)
+{
+  double m = sol->GetMass();
+  Vec3d c = sol->GetCenterOfMass();
+  Matrix3d i = sol->GetInertia();
+  fprintf(stdout, "PHSolid: mass %7.3lf\n", m);
+  fprintf(stdout, "PHSolid: center (%7.3lf, %7.3lf, %7.3lf)\n", c.x, c.y, c.z);
+  fprintf(stdout, "PHSolid: inertia\n");
+  fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[0][0], i[0][1], i[0][2]);
+  fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[1][0], i[1][1], i[1][2]);
+  fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[2][0], i[2][1], i[2][2]);
+}
+
 float PNR[][2] = {
   {    15.0f, 0.800f}, // 0.000f}, //
   {14+1/2.0f, 1.870f}, //
@@ -26,12 +56,11 @@ float PNR[][2] = {
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
-PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
+PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
 {
   PHSceneIf *phScene = fwSdk->GetScene()->GetPHScene();
   float pi = 3.14159265358979323846264338327950288419716939937510f;
-  float r = 0.2f;
-  int t = 18; // 12;
+  int t = 24; // 18; // 12;
   const int m = sizeof(PNR) / sizeof(PNR[0]);
   const int l = sizeof(PNI) / sizeof(PNI[0]);
   PHJointIf *jois[l - 1];
@@ -79,6 +108,16 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
     cvxs[i]->AddShape(shapeCvx);
     cvxs[i]->SetFramePosition(pos + Vec3d(0.0, o[0], 0.0));
 //    DispVertices(shapeCvx);
+//    DispSolidInf(cvxs[i]);
+    // default
+    //   0.050     0.152     0.361     0.316        // mass calclated cvxs[3-0]
+    //   (0, 0, 0) (0, 0, 0) (0, 0, 0) (0, 0, 0)    // center of mass cvxs[3-0]
+    //   3-0 all (0.033, 0, 0) (0, 0.033, 0) (0, 0, 0.033) // inertia cvxs[3-0]
+    // after SetXXX()
+    // 0.040 (0, 0.112, 0) (0.001, 0, 0) (0, 0.001, 0) (0, 0, 0.001) // cvxs[3]
+    // 0.106 (0, 0.391, 0) (0.005, 0, 0) (0, 0.003, 0) (0, 0, 0.005) // cvxs[2]
+    // 0.467 (0, 0.400, 0) (0.055, 0, 0) (0, 0.039, 0) (0, 0, 0.055) // cvxs[1]
+    // 0.411 (0, 0.548, 0) (0.040, 0, 0) (0, 0.034, 0) (0, 0, 0.040) // cvxs[0]
     if(i == 0) prev = o[0];
     else{
       PHHingeJointDesc jd; // PHJoint1D PHJoint PHConstraint
@@ -127,21 +166,40 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos)
   return cvxs[0];
 }
 
-void DispVertices(CDShapeIf *shapeCvx)
+PHSolidIf *CreatePlane(FWSdkIf *fwSdk, Vec3d pos, Vec3f sz, float r,
+  bool dyn=false)
 {
-  CDConvexMeshIf *mesh = shapeCvx->Cast();
-  fprintf(stdout, "ConvexMesh: Vertex %d\n", mesh->NVertex());
-  fprintf(stdout, "ConvexMesh: Faces %d\n", mesh->NFace());
-  for(int i = 0; i < mesh->NFace(); ++i){
-    CDFaceIf *face = mesh->GetFace(i);
-    fprintf(stdout, "ConvexMesh: Face[%d] Index %d\n", i, face->NIndex());
-    int *indices = face->GetIndices();
-    for(int j = 0; j < face->NIndex(); ++j){
-      Vec3f v = mesh->GetVertices()[indices[j]];
-      fprintf(stdout, "ConvexMesh: Face[%d] Vertex[%d] (%5.3f %5.3f %5.3f)\n",
-        i, j, v.x, v.y, v.z);
-    }
-  }
+  PHSolidDesc desc;
+  desc.mass = 0.05;
+  desc.inertia *= 0.033;
+  PHSolidIf *soPlane = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  soPlane->SetDynamical(dyn);
+  soPlane->SetMass(1000.0);
+  CDBoxDesc bd;
+  bd.boxsize = sz * r;
+  CDShapeIf *shapePlane = fwSdk->GetPHSdk()->CreateShape(bd);
+  soPlane->AddShape(shapePlane);
+  soPlane->SetFramePosition(pos * r);
+  return soPlane;
+}
+
+PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, Vec3d pos, Vec3f si, float r)
+{
+  // si.x (length) si.y (thickness) si.z (radius)
+  PHSolidIf *soHalfPipe = CreatePlane(fwSdk, pos, Vec3f(si.x, si.y, si.z), r);
+  return soHalfPipe;
+}
+
+PHSolidIf *CreateLane(FWSdkIf *fwSdk, Vec3d pos, float r)
+{
+  float ballr = 8.5f / 2.0f;
+  float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * 12.0f;
+  Vec3f gtsi = Vec3f(lnd, lnh, (ballr * 2.0f + 0.75f) / 2.0f);
+  float gtp = lnw / 2.0f + gtsi.z;
+  CreateHalfPipe(fwSdk, Vec3d(pos.x, pos.y - lnh, pos.z - gtp), gtsi, r);
+  CreateHalfPipe(fwSdk, Vec3d(pos.x, pos.y - lnh, pos.z + gtp), gtsi, r);
+  PHSolidIf *soLane = CreatePlane(fwSdk, pos, Vec3f(lnd, lnh, lnw), r);
+  return soLane;
 }
 
 PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
@@ -165,7 +223,7 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
   CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
   cvx->AddShape(shapeCvx);
   cvx->SetFramePosition(Vec3d(0, 2, 0));
-  DispVertices(shapeCvx); // 4 - 4 - 3
+//  DispVertices(shapeCvx); // 4 - 4 - 3
   // 100 000 010, 100 010 001, 010 000 001, 000 100 001
   return cvx;
 }
@@ -186,7 +244,7 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
   cvx->AddShape(shapeCvx);
   cvx->SetFramePosition(Vec3d(0, 2, 0));
-  DispVertices(shapeCvx); // 8 - 12 - 3
+//  DispVertices(shapeCvx); // 8 - 12 - 3
   // 001 100 101, 110 000 010, 000 011 010, 101 110 111,
   // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
   // 100 000 110, 011 001 101, 100 110 101, 011 110 010
@@ -321,7 +379,7 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case '.':
     DSTR << "convexmeshpin" << std::endl;
-    CreateConvexMeshPin(GetSdk(), Vec3d(0, 5, 0));
+    CreateConvexMeshPin(GetSdk(), Vec3d(0, 5, 0), 0.2f);
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
@@ -425,7 +483,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 
   PHSolidIf *floor = phScene->CreateSolid();
   floor->SetDynamical(false);
-  floor->SetMass(1000.0);
+  floor->SetMass(10000.0);
   bd.boxsize = Vec3f(20.0f, 0.1f, 20.0f);
   floor->AddShape(phSdk->CreateShape(bd));
   floor->SetFramePosition(Vec3d(0, -1.0, 0));
@@ -460,17 +518,40 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   PHHingeJointIf *joint = phScene->CreateJoint(sol0, sol1, hjd)->Cast();
 
 /*
+pdr = 7.5 + 0.17 feet
+last = 34+3/16 inch /12 -> 2.849 feet
+triangle = 12 inch * 3 (center of pin axis) /12 -> 3 feet
+triangle lane = 31+3/16 inch /12 -> 2.600 feet = psd
+psd = 2.600 feet < 2.9949 feet < (lnw x root(3) / 2)
+apd = 15 + 0.35 feet
+lnd = 60 feet
+lnw = 41.5 inch /12 -> 3.4583... feet
+gtw = 9.25 inch /12 -> 0.77083... feet
+pindrop (lnd, -h, 0) pdr lnw+gtw*2
+pinspot (lnd, 0, 0) psd lnw
+lane (0, 0, 0) lnd lnw
+approach (-apd, 0, 0) apd lnw+gtw*2
+gutterLo (0, -, -lnw/2) lnd gtw (rot)
+gutterLi (0, -, -lnw/2) lnd gtw (rot)
+gutterRi (0, -, lnw/2) lnd gtw (rot)
+gutterRo (0, -, lnw/2) lnd gtw (rot)
+ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
+*/
+  float pnr = 0.2f; // scale
+  CreateLane(GetSdk(), Vec3d(0.0, -20.0, 0.0), pnr);
+/*
     0      j = 0  i = 0             0
    2 1         1      1, 2          0 1
   5 4 3        2      3, 4, 5       0 1 2
  9 8 7 6       3      6, 7, 8, 9    0 1 2 3
 */
-  double pnp = 3; // 2.0 * 30.48 / (40.0 * 2.0);
-  double pnq = pnp * sqrt(3.0) / 2.0;
+  float pino = -2.4f; // dummy (head pin center point = 60 feet)
+  float pnp = 12.0f * pnr; // distance of each pin center point = 12 inch
+  float pnq = pnp * sqrt(3.0f) / 2.0f;
   for(int k = 0, j = 0; j < 4; ++j)
     for(int i = 0; ++k, i < j + 1; ++i)
       CreateConvexMeshPin(GetSdk(),
-        Vec3d(-1.0 - j * pnq, -1.0, i * pnp - j * pnp / 2.0));
+        Vec3d(pino - j * pnq, -1.0, i * pnp - j * pnp / 2.0), pnr);
 }
 
 void MyApp::Reset()
