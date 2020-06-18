@@ -192,12 +192,10 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
   float sr = si.z * r;
   PHSolidIf *soHalfPipe = CreatePlane(fwSdk, c, pos, si, r);
   Vec3d p = soHalfPipe->GetCenterPosition();
-  soHalfPipe->SetCenterPosition(Vec3d(p.x, p.y - sr, p.z));
   for(int i = -1; i <= 1; ++i){
-    if(!i) continue;
-    double a = i * 60.0;
+    double a = i * 60.0; // 60.0: -1 -> 1, 36.0: -2 -> 2
     double th = a * PI / 180.0;
-    PHSolidIf *so = soHalfPipe->CloneObject()->Cast();
+    PHSolidIf *so = i ? soHalfPipe->CloneObject()->Cast() : soHalfPipe;
     so->SetOrientation(Quaterniond::Rot(Rad(a), 'x'));
     so->SetCenterPosition(Vec3d(p.x, p.y - sr * cos(th), p.z - sr * sin(th)));
     fwSdk->GetScene()->SetSolidMaterial(c, so);
