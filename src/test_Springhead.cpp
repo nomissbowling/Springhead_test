@@ -72,7 +72,7 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
-PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
+PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 {
   FWSceneIf *fwScene = fwSdk->GetScene();
   PHSceneIf *phScene = fwScene->GetPHScene();
@@ -123,7 +123,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
     cvxs[i]->SetInertia(shapeCvx->CalcMomentOfInertia());
     cvxs[i]->AddShape(shapeCvx);
     cvxs[i]->SetFramePosition(pos + Vec3d(0.0, o[0], 0.0));
-    fwScene->SetSolidMaterial(GRRenderBaseIf::WHITE, cvxs[i]);
+    fwScene->SetSolidMaterial(c, cvxs[i]);
 //    DispVertices(shapeCvx);
 //    DispSolidInf(cvxs[i]);
     // default
@@ -184,7 +184,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
   return cvxs[0];
 }
 
-PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, Vec3d pos, float r)
+PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 {
 /*
     0      j = 0  i = 0             0
@@ -197,8 +197,24 @@ PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, Vec3d pos, float r)
   float pnq = pnp * sqrt(3.0f) / 2.0f;
   for(int k = 0, j = 0; j < 4; ++j)
     for(int i = 0; ++k, i < j + 1; ++i)
-      so = CreateConvexMeshPin(fwSdk,
+      so = CreateConvexMeshPin(fwSdk, c,
         pos * r + Vec3d(j * pnq, 0.0, i * pnp - j * pnp / 2.0), r);
+  return so;
+}
+
+PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r,
+  float m)
+{
+  PHSolidDesc desc;
+  desc.mass = m;
+  desc.inertia *= 0.03;
+  PHSolidIf *so = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  CDSphereDesc sd;
+  sd.radius = rad * r;
+  CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
+  so->AddShape(shapeSphere);
+  so->SetCenterPosition(pos * r + Vec3d(0.0, sd.radius, 0.0));
+  fwSdk->GetScene()->SetSolidMaterial(c, so);
   return so;
 }
 
@@ -272,7 +288,12 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
   PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
     pos, Vec3f(lnd, lnh, lnw), r);
-  CreatePinsTriangle(fwSdk, pos + Vec3d(lnd / 2.0f, -lnh / 2.0f, 0.0), r);
+  PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::WHITE,
+    pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(-lnd / 6.0f, lnh / 2.0f, 0.0), ballr, r, 1.5f);
+  soBall->SetVelocity(Vec3d(60.0 * 12.0 / 30.0, 0.0, 0.0));
+  soBall->SetAngularVelocity(Vec3d(-2.0, 0.0, 5.0));
   return soLane;
 }
 
@@ -459,7 +480,7 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case '.':
     DSTR << "convexmeshpin" << std::endl;
-    CreateConvexMeshPin(GetSdk(), Vec3d(0, 5, 0), 0.2f);
+    CreateConvexMeshPin(GetSdk(), GRRenderBaseIf::GOLD, Vec3d(0, 5, 0), 0.2f);
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
@@ -506,7 +527,7 @@ void MyApp::InitCameraView()
 */
   tb->SetTarget(Vec3f(0.0f, 0.0f, 0.0f));
 //tb->SetAngle(0.78f, 0.35f); // move camera by angle: look left pi/4 down pi/9
-//tb->SetAngle(1.05f, 0.26f); // pi/3 (-pi<lng<pi), pi/12 (-pi/2<lat<pi/2)
+//tb->SetAngle(1.05f, 0.26f); // pi/3 (-pi<=lng<=pi), pi/12 (-pi/2<=lat<=pi/2)
 //tb->SetAngle(1.31f, 0.09f); // 5pi/12, pi/36
   tb->SetAngle(1.48f, 0.09f); // 17pi/36, pi/36
 //tb->SetDistance(30.0f);
