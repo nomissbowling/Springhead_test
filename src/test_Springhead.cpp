@@ -57,6 +57,20 @@ float PNR[][2] = {
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
+PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
+{
+  Vec3d q;
+  for(int i = 0; i < n; ++i){
+    Vec3d p = so[i]->GetFramePosition();
+    Vec3d np = qt * p;
+    if(!i) q = p - np;
+    so[i]->SetFramePosition(np); // rot (center is origin)
+    so[i]->SetOrientation(qt); // rot (center is local center)
+    so[i]->SetFramePosition(np + q); // relative point from so[0]
+  }
+  return so;
+}
+
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
 {
   FWSceneIf *fwScene = fwSdk->GetScene();
@@ -165,6 +179,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
     }
   }
   phScene->SetContactMode(cvxs, l, PHSceneDesc::MODE_NONE); // parts of solids
+//  RotAllParts(cvxs, l, Quaterniond::Rot(Rad(-90.0), 'x'));
   return cvxs[0];
 }
 
