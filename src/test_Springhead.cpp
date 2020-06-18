@@ -111,7 +111,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
     cmd.vertices = vertices;
     cmd.material.density = 1.0;
     // cmd.material.mu0 = ;
-    // cmd.material.mu = ;
+    cmd.material.mu = 0.4f;
     cmd.material.e = 0.4f; // 1.0f;
     // cmd.material.reflexSpring = ;
     // cmd.material.reflexDamper = ;
@@ -210,6 +210,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   PHSolidIf *so = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
   CDSphereDesc sd;
   sd.radius = rad * r;
+  sd.material.mu = 3.0f;
   sd.material.e = 0.3f;
   CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
   so->AddShape(shapeSphere);
@@ -229,6 +230,8 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   soPlane->SetMass(1000.0);
   CDBoxDesc bd;
   bd.boxsize = sz * r;
+  bd.material.mu = 3.0f;
+  bd.material.e = 0.4f;
   CDShapeIf *shapePlane = fwSdk->GetPHSdk()->CreateShape(bd);
   soPlane->AddShape(shapePlane);
   soPlane->SetCenterPosition(pos * r);
