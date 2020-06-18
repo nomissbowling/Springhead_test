@@ -112,7 +112,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
     cmd.material.density = 1.0;
     // cmd.material.mu0 = ;
     // cmd.material.mu = ;
-    cmd.material.e = 1.0f;
+    cmd.material.e = 0.4f; // 1.0f;
     // cmd.material.reflexSpring = ;
     // cmd.material.reflexDamper = ;
     // cmd.material.frictionSpring = ;
@@ -202,15 +202,15 @@ PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   return so;
 }
 
-PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r,
-  float m)
+PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
 {
   PHSolidDesc desc;
-  desc.mass = m;
+  desc.mass = 1.0;
   desc.inertia *= 0.03;
   PHSolidIf *so = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
   CDSphereDesc sd;
   sd.radius = rad * r;
+  sd.material.e = 0.3f;
   CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
   so->AddShape(shapeSphere);
   so->SetCenterPosition(pos * r + Vec3d(0.0, sd.radius, 0.0));
@@ -222,7 +222,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   bool dyn=false)
 {
   PHSolidDesc desc;
-  desc.mass = 0.05;
+  desc.mass = 1000.0;
   desc.inertia *= 0.033;
   PHSolidIf *soPlane = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
   soPlane->SetDynamical(dyn);
@@ -291,9 +291,10 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::WHITE,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(-lnd / 6.0f, lnh / 2.0f, 0.0), ballr, r, 1.5f);
-  soBall->SetVelocity(Vec3d(60.0 * 12.0 / 30.0, 0.0, 0.0));
-  soBall->SetAngularVelocity(Vec3d(-2.0, 0.0, 5.0));
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 3.2f), ballr, r);
+  soBall->SetMass(0.9);
+  soBall->SetVelocity(Vec3d(lnd * r / 2.4, 0.0, 0.0));
+  soBall->SetAngularVelocity(Vec3d(-5.0, 2.0, -5.0));
   return soLane;
 }
 
