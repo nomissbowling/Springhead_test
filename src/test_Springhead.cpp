@@ -36,6 +36,7 @@ void DispSolidInf(PHSolidIf *sol)
   fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[2][0], i[2][1], i[2][2]);
 }
 
+float PI = 3.14159265358979323846264338327950288419716939937510f;
 float PNR[][2] = {
   {    15.0f, 0.800f}, // 0.000f}, //
   {14+1/2.0f, 1.870f}, //
@@ -58,8 +59,8 @@ int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
 {
-  PHSceneIf *phScene = fwSdk->GetScene()->GetPHScene();
-  float pi = 3.14159265358979323846264338327950288419716939937510f;
+  FWSceneIf *fwScene = fwSdk->GetScene();
+  PHSceneIf *phScene = fwScene->GetPHScene();
   int t = 24; // 18; // 12;
   const int m = sizeof(PNR) / sizeof(PNR[0]);
   const int l = sizeof(PNI) / sizeof(PNI[0]);
@@ -74,7 +75,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
       float p0 = p[0] * r, p1 = p[1] * r / 2.0f;
       if(!j) o[0] = p0, q[0] = p1; else if(j == n - 1) o[1] = p0, q[1] = p1;
       for(int k = 0; k < t; ++k){
-        float th = 2.0f * pi * k / t;
+        float th = 2.0f * PI * k / t;
         vertices[j * t + k].x = p1 * cos(th);
         vertices[j * t + k].y = p0 - o[0];
         vertices[j * t + k].z = p1 * sin(th);
@@ -107,6 +108,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
     cvxs[i]->SetInertia(shapeCvx->CalcMomentOfInertia());
     cvxs[i]->AddShape(shapeCvx);
     cvxs[i]->SetFramePosition(pos + Vec3d(0.0, o[0], 0.0));
+    fwScene->SetSolidMaterial(GRRenderBaseIf::WHITE, cvxs[i]);
 //    DispVertices(shapeCvx);
 //    DispSolidInf(cvxs[i]);
     // default
@@ -166,7 +168,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, Vec3d pos, float r)
   return cvxs[0];
 }
 
-PHSolidIf *CreatePlane(FWSdkIf *fwSdk, Vec3d pos, Vec3f sz, float r,
+PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   bool dyn=false)
 {
   PHSolidDesc desc;
@@ -179,26 +181,49 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, Vec3d pos, Vec3f sz, float r,
   bd.boxsize = sz * r;
   CDShapeIf *shapePlane = fwSdk->GetPHSdk()->CreateShape(bd);
   soPlane->AddShape(shapePlane);
-  soPlane->SetFramePosition(pos * r);
+  soPlane->SetCenterPosition(pos * r);
+  fwSdk->GetScene()->SetSolidMaterial(c, soPlane);
   return soPlane;
 }
 
-PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, Vec3d pos, Vec3f si, float r)
+PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
 {
   // si.x (length) si.y (thickness) si.z (radius)
-  PHSolidIf *soHalfPipe = CreatePlane(fwSdk, pos, Vec3f(si.x, si.y, si.z), r);
+  float sr = si.z * r;
+  PHSolidIf *soHalfPipe = CreatePlane(fwSdk, c, pos, si, r);
+  Vec3d p = soHalfPipe->GetCenterPosition();
+  soHalfPipe->SetCenterPosition(Vec3d(p.x, p.y - sr, p.z));
+  for(int i = -1; i <= 1; ++i){
+    if(!i) continue;
+    double a = i * 60.0;
+    double th = a * PI / 180.0;
+    PHSolidIf *so = soHalfPipe->CloneObject()->Cast();
+    so->SetOrientation(Quaterniond::Rot(Rad(a), 'x'));
+    so->SetCenterPosition(Vec3d(p.x, p.y - sr * cos(th), p.z - sr * sin(th)));
+    fwSdk->GetScene()->SetSolidMaterial(c, so);
+  }
   return soHalfPipe;
 }
 
 PHSolidIf *CreateLane(FWSdkIf *fwSdk, Vec3d pos, float r)
 {
   float ballr = 8.5f / 2.0f;
+  float apd = 15.35f * 12.0f;
+  float psd = 2.6f * 12.0f, lst = 2.849f * 12.0f, pdr = 7.67f * 12.0f;
+  float aph = apd / 2.0f, lsh = lst / 2.0f;
   float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * 12.0f;
-  Vec3f gtsi = Vec3f(lnd, lnh, (ballr * 2.0f + 0.75f) / 2.0f);
+  Vec3f gtsi = Vec3f(lnd + lst, lnh, (ballr * 2.0f + 0.75f) / 2.0f);
   float gtp = lnw / 2.0f + gtsi.z;
-  CreateHalfPipe(fwSdk, Vec3d(pos.x, pos.y - lnh, pos.z - gtp), gtsi, r);
-  CreateHalfPipe(fwSdk, Vec3d(pos.x, pos.y - lnh, pos.z + gtp), gtsi, r);
-  PHSolidIf *soLane = CreatePlane(fwSdk, pos, Vec3f(lnd, lnh, lnw), r);
+  CreateHalfPipe(fwSdk, GRRenderBaseIf::LIMEGREEN,
+    Vec3d(pos.x + lsh, pos.y, pos.z - gtp), gtsi, r);
+  CreateHalfPipe(fwSdk, GRRenderBaseIf::LIMEGREEN,
+    Vec3d(pos.x + lsh, pos.y, pos.z + gtp), gtsi, r);
+  PHSolidIf *soLast = CreatePlane(fwSdk, GRRenderBaseIf::DARKSALMON,
+    Vec3d(pos.x + lnd / 2.0f + lsh, pos.y, pos.z), Vec3f(lst, lnh, lnw), r);
+  PHSolidIf *soAppr = CreatePlane(fwSdk, GRRenderBaseIf::SALMON,
+    Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
+  PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
+    pos, Vec3f(lnd, lnh, lnw), r);
   return soLane;
 }
 
@@ -531,10 +556,6 @@ pindrop (lnd, -h, 0) pdr lnw+gtw*2
 pinspot (lnd, 0, 0) psd lnw
 lane (0, 0, 0) lnd lnw
 approach (-apd, 0, 0) apd lnw+gtw*2
-gutterLo (0, -, -lnw/2) lnd gtw (rot)
-gutterLi (0, -, -lnw/2) lnd gtw (rot)
-gutterRi (0, -, lnw/2) lnd gtw (rot)
-gutterRo (0, -, lnw/2) lnd gtw (rot)
 ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 */
   float pnr = 0.2f; // scale
