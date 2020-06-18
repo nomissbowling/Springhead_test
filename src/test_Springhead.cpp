@@ -198,7 +198,7 @@ PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, Vec3d pos, float r)
   for(int k = 0, j = 0; j < 4; ++j)
     for(int i = 0; ++k, i < j + 1; ++i)
       so = CreateConvexMeshPin(fwSdk,
-        pos + Vec3d(j * pnq, 0.0, i * pnp - j * pnp / 2.0), r);
+        pos * r + Vec3d(j * pnq, 0.0, i * pnp - j * pnp / 2.0), r);
   return so;
 }
 
@@ -254,12 +254,12 @@ lane (0, 0, 0) lnd lnw
 approach (-apd, 0, 0) apd lnw+gtw*2
 ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 */
-  float pino = 2.4f; // dummy (head pin center point = 60 feet)
+  float feetinch = 12.0f;
   float ballr = 8.5f / 2.0f;
-  float apd = 15.35f * 12.0f;
-  float psd = 2.6f * 12.0f, lst = 2.849f * 12.0f, pdr = 7.67f * 12.0f;
+  float apd = 15.35f * feetinch;
+  float psd = 2.6f * feetinch, lst = 2.849f * feetinch, pdr = 7.67f * feetinch;
   float aph = apd / 2.0f, lsh = lst / 2.0f;
-  float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * 12.0f;
+  float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * feetinch;
   Vec3f gtsi = Vec3f(lnd + lst, lnh, (ballr * 2.0f + 0.75f) / 2.0f);
   float gtp = lnw / 2.0f + gtsi.z;
   CreateHalfPipe(fwSdk, GRRenderBaseIf::LIMEGREEN,
@@ -272,7 +272,7 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
   PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
     pos, Vec3f(lnd, lnh, lnw), r);
-  CreatePinsTriangle(fwSdk, Vec3d(pino, -1.0, 0.0), PNS);
+  CreatePinsTriangle(fwSdk, pos + Vec3d(lnd / 2.0f, -lnh / 2.0f, 0.0), r);
   return soLane;
 }
 
@@ -505,8 +505,12 @@ void MyApp::InitCameraView()
   tb->xxx(issView.Trn());
 */
   tb->SetTarget(Vec3f(0.0f, 0.0f, 0.0f));
-  tb->SetAngle(0.78f, 0.35f); // move camera by angle: look left pi/4 down pi/9
-  tb->SetDistance(30.0f);
+//tb->SetAngle(0.78f, 0.35f); // move camera by angle: look left pi/4 down pi/9
+//tb->SetAngle(1.05f, 0.26f); // pi/3 (-pi<lng<pi), pi/12 (-pi/2<lat<pi/2)
+//tb->SetAngle(1.31f, 0.09f); // 5pi/12, pi/36
+  tb->SetAngle(1.48f, 0.09f); // 17pi/36, pi/36
+//tb->SetDistance(30.0f);
+  tb->SetDistance(95.0f); // <= max 99
 }
 
 void MyApp::CreateObjects()
