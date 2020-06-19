@@ -483,10 +483,10 @@ void MyApp::Init(int ac, char **av)
 //  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene(); // null pointer ?
 
   MyWinDescPart wdp[] = {
-    {640, 480, 160, 560, WIN_TITLE, false, DBG},
-    {640, 480, 160, 40, WIN_UP, false, DBG},
-    {640, 480, 840, 40, WIN_PINTOP, false, DBG},
-    {640, 480, 840, 560, WIN_SIDE, false, DBG}};
+    {640, 480, 160, 512, WIN_TITLE, false, DBG},
+    {640, 480, 160, 0, WIN_UP, false, DBG},
+    {640, 480, 804, 0, WIN_PINTOP, false, DBG},
+    {640, 480, 804, 512, WIN_SIDE, false, DBG}};
   for(int i = 0; i < sizeof(wdp) / sizeof(wdp[0]); ++i){
     FWWinDesc wd;
     wd.title = wdp[i].title;
@@ -646,7 +646,7 @@ void MyApp::CreateCameras()
     fprintf(stdout, " (%7.3f %7.3f %7.3f)\n", t[1][0], t[1][1], t[1][2]);
     fprintf(stdout, " (%7.3f %7.3f %7.3f)\n", t[2][0], t[2][1], t[2][2]);
   }
-// frm->SetTransform(Affinef::Trn(3.0, 0.0, 0.0));
+// frm->SetTransform(Affinef::Trn(3.0, 0.0, 0.0)); // Trn(3.0, 1.0, 1.0) ?
 
   GRCameraDesc camd;
   camd.size = Vec2f(0.2f, 0.0f);
