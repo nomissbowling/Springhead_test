@@ -524,10 +524,10 @@ void MyApp::TimerFunc(int id)
 
 void MyApp::Display()
 {
-//  FWApp::Display(); // use default
+//  FWApp::Display(); // skip default
   for(int i = 0; i < 4; ++i){ SetCurrentWin(GetWin(i)); GetWin(i)->Display(); }
   SetCurrentWin(GetWin(0));
-//  for(int i = 0; i < 4; ++i) GetWin(i)->Display(); // bad
+//  for(int i = 0; i < 4; ++i) GetWin(i)->Display(); // (all Scene in all Win)
   FWSceneIf *fwScene = GetSdk()->GetScene(0);
   fwScene->EnableRenderAxis(bDrawInfo);
   fwScene->EnableRenderForce(bDrawInfo);
