@@ -110,9 +110,9 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
     CDConvexMeshDesc cmd;
     cmd.vertices = vertices;
     cmd.material.density = 1.0;
-    // cmd.material.mu0 = ;
-    cmd.material.mu = 0.4f;
-    cmd.material.e = 0.4f; // 1.0f;
+    cmd.material.mu0 = 0.5f;
+    cmd.material.mu = 0.3f;
+    cmd.material.e = 0.3f; // 1.0f;
     // cmd.material.reflexSpring = ;
     // cmd.material.reflexDamper = ;
     // cmd.material.frictionSpring = ;
@@ -210,8 +210,9 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   PHSolidIf *so = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
   CDSphereDesc sd;
   sd.radius = rad * r;
-  sd.material.mu = 3.0f;
-  sd.material.e = 0.3f;
+  sd.material.mu0 = 0.5f;
+  sd.material.mu = 0.4f;
+  sd.material.e = 0.4f;
   CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
   so->AddShape(shapeSphere);
   so->SetCenterPosition(pos * r + Vec3d(0.0, sd.radius, 0.0));
@@ -230,8 +231,9 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   soPlane->SetMass(1000.0);
   CDBoxDesc bd;
   bd.boxsize = sz * r;
-  bd.material.mu = 3.0f;
-  bd.material.e = 0.4f;
+  bd.material.mu0 = 0.5f;
+  bd.material.mu = 0.2f;
+  bd.material.e = 0.2f;
   CDShapeIf *shapePlane = fwSdk->GetPHSdk()->CreateShape(bd);
   soPlane->AddShape(shapePlane);
   soPlane->SetCenterPosition(pos * r);
@@ -293,11 +295,54 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     pos, Vec3f(lnd, lnh, lnw), r);
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::WHITE,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
+/*
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
     pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 3.2f), ballr, r);
   soBall->SetMass(0.9);
   soBall->SetVelocity(Vec3d(lnd * r / 2.4, 0.0, 0.0));
   soBall->SetAngularVelocity(Vec3d(-5.0, 2.0, -5.0));
+*/
+/* // hooking point 50ft ? 7pin only or left gutter
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.9);
+  soBall->SetVelocity(Vec3d(lnd * r / 6.0 / 2.4, 0.0, -38.0 * r / 2.4));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+/* // hooking point 50ft ?
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -17.5 * r / 3.6));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+/* // hooking point 50ft ? 10pin tap
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.0 * r / 3.6));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+/* // hooking point 50ft ? just ?
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.4 * r / 3.6));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+/* // hooking point 50ft ? 9pin tap
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.5 * r / 3.6));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+// hooking point 40ft ?
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(lnd / 6.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 3.0 * -19.3 * r / 4.8));
+  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
   return soLane;
 }
 
@@ -589,7 +634,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   CDBoxDesc bd;
   PHSolidDesc sd;
   sd.mass = 1.0;
-
+/*
   PHSolidIf *floor = phScene->CreateSolid();
   floor->SetDynamical(false);
   floor->SetMass(10000.0);
@@ -630,7 +675,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   hjd.poseSocket.Pos() = Vec3d(1.0, 0.0, 0.0);
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
   PHHingeJointIf *joint = phScene->CreateJoint(sol0, sol1, hjd)->Cast();
-
+*/
   CreateLane(GetSdk(), Vec3d(0.0, -20.0, 0.0), PNS);
 }
 
