@@ -8,7 +8,10 @@
 #include <Springhead.h>
 #include <Framework/SprFWApp.h>
 
-#define TEST_WORD "test_Springhead"
+#define WIN_TITLE "test_Springhead"
+#define WIN_UP "test_Springhead_Up"
+#define WIN_PINTOP "test_Springhead_PinTop"
+#define WIN_SIDE "test_Springhead_Side"
 
 using namespace Spr;
 

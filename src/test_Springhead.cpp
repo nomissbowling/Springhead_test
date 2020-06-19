@@ -74,7 +74,7 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
 
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 {
-  FWSceneIf *fwScene = fwSdk->GetScene();
+  FWSceneIf *fwScene = fwSdk->GetScene(0);
   PHSceneIf *phScene = fwScene->GetPHScene();
   int t = 24; // 18; // 12;
   const int m = sizeof(PNR) / sizeof(PNR[0]);
@@ -207,7 +207,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   PHSolidDesc desc;
   desc.mass = 1.0;
   desc.inertia *= 0.03;
-  PHSolidIf *so = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *so = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDSphereDesc sd;
   sd.radius = rad * r;
   sd.material.mu0 = 0.5f;
@@ -216,7 +216,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
   so->AddShape(shapeSphere);
   so->SetCenterPosition(pos * r + Vec3d(0.0, sd.radius, 0.0));
-  fwSdk->GetScene()->SetSolidMaterial(c, so);
+  fwSdk->GetScene(0)->SetSolidMaterial(c, so);
   return so;
 }
 
@@ -226,7 +226,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   PHSolidDesc desc;
   desc.mass = 1000.0;
   desc.inertia *= 0.033;
-  PHSolidIf *soPlane = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *soPlane = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   soPlane->SetDynamical(dyn);
   soPlane->SetMass(1000.0);
   CDBoxDesc bd;
@@ -237,7 +237,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   CDShapeIf *shapePlane = fwSdk->GetPHSdk()->CreateShape(bd);
   soPlane->AddShape(shapePlane);
   soPlane->SetCenterPosition(pos * r);
-  fwSdk->GetScene()->SetSolidMaterial(c, soPlane);
+  fwSdk->GetScene(0)->SetSolidMaterial(c, soPlane);
   return soPlane;
 }
 
@@ -358,7 +358,7 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
-  PHSolidIf *cvx = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *cvx = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDConvexMeshDesc cmd;
   cmd.vertices = vertices;
 //  cmd.faces = faces; // not defined
@@ -367,7 +367,7 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
   CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
   cvx->AddShape(shapeCvx);
   cvx->SetFramePosition(Vec3d(0, 2, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::INDIGO, cvx);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::INDIGO, cvx);
 //  DispVertices(shapeCvx); // 4 - 4 - 3
   // 100 000 010, 100 010 001, 010 000 001, 000 100 001
   return cvx;
@@ -381,7 +381,7 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
-  PHSolidIf *cvx = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *cvx = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDConvexMeshDesc cmd;
   cmd.vertices = vertices;
   cmd.material.density = 1.0;
@@ -389,7 +389,7 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
   cvx->AddShape(shapeCvx);
   cvx->SetFramePosition(Vec3d(0, 2, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::DEEPSKYBLUE, cvx);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::DEEPSKYBLUE, cvx);
 //  DispVertices(shapeCvx); // 8 - 12 - 3
   // 001 100 101, 110 000 010, 000 011 010, 101 110 111,
   // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
@@ -402,13 +402,13 @@ PHSolidIf *CreateBox(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
-  PHSolidIf *soBox = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *soBox = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDBoxDesc bd;
   bd.boxsize = Vec3f(2, 2, 2);
   CDShapeIf *shapeBox = fwSdk->GetPHSdk()->CreateShape(bd);
   soBox->AddShape(shapeBox);
   soBox->SetFramePosition(Vec3d(0, 10, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::NAVY, soBox);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::NAVY, soBox);
   return soBox;
 }
 
@@ -417,13 +417,13 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.03;
-  PHSolidIf *soSphere = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *soSphere = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDSphereDesc sd;
   sd.radius = 2.0;
   CDShapeIf *shapeSphere = fwSdk->GetPHSdk()->CreateShape(sd);
   soSphere->AddShape(shapeSphere);
   soSphere->SetFramePosition(Vec3d(0, 15, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::SEAGREEN, soSphere);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::SEAGREEN, soSphere);
   return soSphere;
 }
 
@@ -432,14 +432,14 @@ PHSolidIf *CreateCapsule(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 1;
-  PHSolidIf *soCapsule = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *soCapsule = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDCapsuleDesc cd;
   cd.length = 3.0;
   cd.radius = 1.0;
   CDShapeIf *shapeCapsule = fwSdk->GetPHSdk()->CreateShape(cd);
   soCapsule->AddShape(shapeCapsule);
   soCapsule->SetFramePosition(Vec3d(0, 15, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::SPRINGGREEN, soCapsule);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::SPRINGGREEN, soCapsule);
   return soCapsule;
 }
 
@@ -448,7 +448,7 @@ PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk)
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 1;
-  PHSolidIf *soRCone = fwSdk->GetScene()->GetPHScene()->CreateSolid(desc);
+  PHSolidIf *soRCone = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   CDRoundConeDesc rd;
   rd.length = 3.0;
   rd.radius[0] = 1.5;
@@ -456,7 +456,7 @@ PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk)
   CDShapeIf *shapeRCone = fwSdk->GetPHSdk()->CreateShape(rd);
   soRCone->AddShape(shapeRCone);
   soRCone->SetFramePosition(Vec3d(0, 15, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::PALEGREEN, soRCone);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::PALEGREEN, soRCone);
   return soRCone;
 }
 
@@ -475,13 +475,69 @@ void MyApp::Init(int ac, char **av)
 /**/
   CreateSdk();
 //  PHSdkIf *phSdk = GetSdk()->GetPHSdk();
-  GetSdk()->CreateScene(); // phSdk->CreateScene(); // same ?
-//  PHSceneIf *phScene = GetSdk()->GetScene()->GetPHScene(); // null pointer ?
   // SetGRAdaptee(TypeGLUT);
   GRInit(ac, av);
+
+  GetSdk()->CreateScene(); // phSdk->CreateScene(); // same ?
+//  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene(); // null pointer ?
   FWWinDesc wd;
-  wd.title = TEST_WORD;
+  wd.title = WIN_TITLE;
+  wd.width = 640;
+  wd.height = 480;
+  wd.left = 160;
+  wd.top = 560;
+  wd.fullscreen = false;
   CreateWin(wd);
+  GetWin(0)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
+  GetWin(0)->SetScene(GetSdk()->GetScene(0));
+  GetWin(0)->SetDebugMode(true);
+
+//  GetSdk()->CreateScene(); // create but not shown
+  wd.title = WIN_UP;
+  wd.width = 640;
+  wd.height = 480;
+  wd.left = 160;
+  wd.top = 40;
+  wd.fullscreen = false;
+  CreateWin(wd);
+  GetWin(1)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
+  GetWin(1)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
+  GetWin(1)->SetDebugMode(true);
+
+//  GetSdk()->CreateScene(); // create but not shown
+  wd.title = WIN_PINTOP;
+  wd.width = 640;
+  wd.height = 480;
+  wd.left = 840;
+  wd.top = 40;
+  wd.fullscreen = false;
+  CreateWin(wd);
+  GetWin(2)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
+  GetWin(2)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
+  GetWin(2)->SetDebugMode(true);
+
+//  GetSdk()->CreateScene(); // create but not shown
+  wd.title = WIN_SIDE;
+  wd.width = 640;
+  wd.height = 480;
+  wd.left = 840;
+  wd.top = 560;
+  wd.fullscreen = false;
+  CreateWin(wd);
+  GetWin(3)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
+  GetWin(3)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
+  GetWin(3)->SetDebugMode(true);
+
+  fprintf(stdout, "Scenes: %d\n", GetSdk()->NScene());
+  for(int i = 0; i < GetSdk()->NScene(); ++i){
+    FWSceneIf *fwScene = GetSdk()->GetScene(i);
+    fwScene->SetRenderMode(true, false);
+    //fwScene->EnableRenderAxis();
+    //fwScene->EnableRenderForce();
+    //fwScene->EnableRenderContact();
+    //fwScene->EnableRenderGrid();
+  }
+
 /**/
   InitCameraView();
   CreateObjects();
@@ -498,14 +554,15 @@ void MyApp::TimerFunc(int id)
 void MyApp::Display()
 {
   FWApp::Display(); // use default
-  FWSceneIf *fwScene = GetSdk()->GetScene();
+  FWSceneIf *fwScene = GetSdk()->GetScene(0);
   fwScene->EnableRenderAxis(bDrawInfo);
   fwScene->EnableRenderForce(bDrawInfo);
   fwScene->EnableRenderContact(bDrawInfo);
+  //fwScene->EnableRenderGrid(bDrawInfo);
 /*
 //  GetSdk()->SetDebugMode(true);
   GetSdk()->GetRender()->SetViewMatrix(
-    GetCurrentWin()->GetTrackball()->GetAffine().inv());
+    GetCurrentWin()->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
   // ??? // must clear renderer background here ?
   GetSdk()->Draw();
   GetSdk()->GetRender()->SwapBuffers();
@@ -562,7 +619,8 @@ void MyApp::Keyboard(int key, int x, int y)
 void MyApp::InitCameraView()
 {
 //  FWApp::InitCameraView(); // no method
-  HITrackballIf *tb = GetCurrentWin()->GetTrackball();
+//  HITrackballIf *tb = GetCurrentWin()->GetTrackball();
+  HITrackballIf *tb = GetWin(0)->GetTrackball();
 /*
   std::istringstream issView(
     "((0.9996 0.0107463 -0.0261432 -0.389004)"
@@ -574,6 +632,23 @@ void MyApp::InitCameraView()
   tb->xxx(issView.Rot());
   tb->xxx(issView.Trn());
 */
+
+  float lnd = 60.0f * 12.0f * PNS;
+  tb->SetTarget(Vec3f(-lnd / 4.0f, 0.0f, 0.0f));
+  tb->SetAngle(-1.57f, 0.78f); // -pi/2, pi/4
+  tb->SetDistance(lnd * 4.0f / 5.0f); // <= max 99
+
+  tb = GetWin(1)->GetTrackball();
+  tb->SetTarget(Vec3f(lnd / 2.0f, 0.0f, 0.0f));
+  tb->SetAngle(-1.57f, 0.09f); // -pi/2, pi/36
+  tb->SetDistance(20.0f); // <= max 99
+
+  tb = GetWin(2)->GetTrackball();
+  tb->SetTarget(Vec3f(lnd / 2.0f, 0.0f, 0.0f));
+  tb->SetAngle(-1.57f, 1.57f); // -pi/2, pi/2
+  tb->SetDistance(20.0f); // <= max 99
+
+  tb = GetWin(3)->GetTrackball();
   tb->SetTarget(Vec3f(0.0f, 0.0f, 0.0f));
 //tb->SetAngle(0.78f, 0.35f); // move camera by angle: look left pi/4 down pi/9
 //tb->SetAngle(1.05f, 0.26f); // pi/3 (-pi<=lng<=pi), pi/12 (-pi/2<=lat<=pi/2)
@@ -589,7 +664,7 @@ void MyApp::CreateObjects()
 //  PHSdkIf *phSdk = PHSdkIf::CreateSdk(); // singleton created by Framework
   PHSdkIf *phSdk = GetSdk()->GetPHSdk();
 //  PHSceneIf *phScene = phSdk->CreateScene(); // create multi instance OK
-  PHSceneIf *phScene = GetSdk()->GetScene()->GetPHScene();
+  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene();
 /**/
   Vec3d gr = phScene->GetGravity(); // 0.0, -9.8, 0.0
   fprintf(stdout, "Scene gravity: %20.17f, %20.17f, %20.17f\n",
@@ -608,7 +683,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 //  GRSdkIf *grSdk = GRSdkIf::CreateSdk();
   GRSdkIf *grSdk = GetSdk()->GetGRSdk();
 //  GRSceneIf *grScene = grSdk->CreateScene();
-//  GRSceneIf *grScene = GetSdk()->GetScene()->GetGRScene();
+//  GRSceneIf *grScene = GetSdk()->GetScene(0)->GetGRScene();
   GRSceneIf *grScene = grSdk->GetScene(0);
   GRFrameIf *frm = grScene->GetWorld();
 //  GRFrameDesc frmd;
@@ -627,21 +702,21 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   FWSceneIf *fwScene = fwSdk->GetScene(0);
   GRFrameIf *frm = fwScene->GetGRScene()->GetWorld();
 */
-
+/*
   Quaterniond q = Quaterniond::Rot(Rad(45.0), Vec3d(1, 1, 1));
 //  Matrix3d rot;
 //  q.ToMatrix(rot);
   CDBoxDesc bd;
   PHSolidDesc sd;
   sd.mass = 1.0;
-/*
+
   PHSolidIf *floor = phScene->CreateSolid();
   floor->SetDynamical(false);
   floor->SetMass(10000.0);
   bd.boxsize = Vec3f(20.0f, 0.1f, 20.0f);
   floor->AddShape(phSdk->CreateShape(bd));
   floor->SetFramePosition(Vec3d(0, -1.0, 0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::HOTPINK, floor);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::HOTPINK, floor);
 
   PHSolidIf *box = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
@@ -651,7 +726,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   box->SetOrientation(q);
 //  box->AddTorque(-Vec3d(1.0, 1.0, 5.0));
   box->AddForce(-Vec3d(0.0, 0.0, -5.0), Vec3d(0.15, 0.85, 0.0));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::BLUE, box);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::BLUE, box);
 
   PHSolidIf *sol = phScene->CreateSolid(sd); // sol->SetMass(5.0); // etc
   bd.boxsize = Vec3f(0.5f, 0.3f, 0.3f);
@@ -659,18 +734,18 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   sol->SetCenterPosition(Vec3d(0.0, 1.5, 0.0));
   sol->SetVelocity(Vec3d(0.0, 0.7, 0.0));
   sol->SetAngularVelocity(-Vec3d(0.5, 0.5, 0.5));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::ORANGERED, sol);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::ORANGERED, sol);
 
   PHSolidIf *sol0 = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
   sol0->AddShape(phSdk->CreateShape(bd));
   sol0->SetCenterPosition(Vec3d(0.5, 0.5, -0.5));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::CYAN, sol0);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::CYAN, sol0);
   PHSolidIf *sol1 = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
   sol1->AddShape(phSdk->CreateShape(bd));
   sol1->SetCenterPosition(Vec3d(0.5, 0.5, 0.5));
-  fwSdk->GetScene()->SetSolidMaterial(GRRenderBaseIf::MAGENTA, sol1);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::MAGENTA, sol1);
   PHHingeJointDesc hjd;
   hjd.poseSocket.Pos() = Vec3d(1.0, 0.0, 0.0);
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
@@ -682,14 +757,14 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 void MyApp::Reset()
 {
 //  FWApp::Reset(); // skip default
-  GetSdk()->GetScene()->GetPHScene()->Clear();
+  GetSdk()->GetScene(0)->GetPHScene()->Clear();
   CreateObjects();
 }
 
 int main(int ac, char **av)
 {
   fprintf(stdout, "sizeof(size_t): %zd\n", sizeof(size_t));
-  fprintf(stdout, "%s\n", TEST_WORD);
+  fprintf(stdout, "%s\n", WIN_TITLE);
   MyApp app; // not catch exception AtExit() when declared at global
   app.Init(ac, av);
   app.StartMainLoop();
