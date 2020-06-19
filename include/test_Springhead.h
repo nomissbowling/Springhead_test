@@ -36,6 +36,8 @@ public:
   virtual void Display();
   virtual void Keyboard(int key, int x, int y);
   void InitCameraView();
+  void CreateCameras();
+  void CreateLights();
   void CreateObjects();
   void Reset();
 };

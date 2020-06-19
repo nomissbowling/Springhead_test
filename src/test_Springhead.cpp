@@ -6,6 +6,29 @@
 
 #include <test_Springhead.h>
 
+bool DBG = true; // true works without camera light etc
+float PI = 3.14159265358979323846264338327950288419716939937510f;
+float PNS = 0.2f; // scale
+float PNR[][2] = {
+  {    15.0f, 0.800f}, // 0.000f}, //
+  {14+1/2.0f, 1.870f}, //
+  {    14.0f, 2.472f}, //
+  {13+1/2.0f, 2.547f},
+  {12+5/8.0f, 2.406f},
+  {11+3/4.0f, 2.094f},
+  {10+7/8.0f, 1.870f},
+  {    10.0f, 1.797f},
+  { 9+3/8.0f, 1.965f},
+  { 8+5/8.0f, 2.472f},
+  { 7+1/4.0f, 3.703f},
+  { 5+7/8.0f, 4.563f},
+  { 4+1/2.0f, 4.766f},
+  { 3+3/8.0f, 4.510f},
+  { 2+1/4.0f, 3.906f},
+  {   3/4.0f, 2.828f},
+  {     0.0f, 2.250f}};
+int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+
 void DispVertices(CDShapeIf *shapeCvx)
 {
   CDConvexMeshIf *mesh = shapeCvx->Cast();
@@ -35,28 +58,6 @@ void DispSolidInf(PHSolidIf *sol)
   fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[1][0], i[1][1], i[1][2]);
   fprintf(stdout, " (%7.3lf, %7.3lf, %7.3lf)\n", i[2][0], i[2][1], i[2][2]);
 }
-
-float PI = 3.14159265358979323846264338327950288419716939937510f;
-float PNS = 0.2f; // scale
-float PNR[][2] = {
-  {    15.0f, 0.800f}, // 0.000f}, //
-  {14+1/2.0f, 1.870f}, //
-  {    14.0f, 2.472f}, //
-  {13+1/2.0f, 2.547f},
-  {12+5/8.0f, 2.406f},
-  {11+3/4.0f, 2.094f},
-  {10+7/8.0f, 1.870f},
-  {    10.0f, 1.797f},
-  { 9+3/8.0f, 1.965f},
-  { 8+5/8.0f, 2.472f},
-  { 7+1/4.0f, 3.703f},
-  { 5+7/8.0f, 4.563f},
-  { 4+1/2.0f, 4.766f},
-  { 3+3/8.0f, 4.510f},
-  { 2+1/4.0f, 3.906f},
-  {   3/4.0f, 2.828f},
-  {     0.0f, 2.250f}};
-int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 
 PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
 {
@@ -293,7 +294,7 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
   PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
     pos, Vec3f(lnd, lnh, lnw), r);
-  PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::WHITE,
+  PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::GOLD,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
 /*
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
@@ -482,10 +483,10 @@ void MyApp::Init(int ac, char **av)
 //  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene(); // null pointer ?
 
   MyWinDescPart wdp[] = {
-    {640, 480, 160, 560, WIN_TITLE, false, true},
-    {640, 480, 160, 40, WIN_UP, false, true},
-    {640, 480, 840, 40, WIN_PINTOP, false, true},
-    {640, 480, 840, 560, WIN_SIDE, false, true}};
+    {640, 480, 160, 560, WIN_TITLE, false, DBG},
+    {640, 480, 160, 40, WIN_UP, false, DBG},
+    {640, 480, 840, 40, WIN_PINTOP, false, DBG},
+    {640, 480, 840, 560, WIN_SIDE, false, DBG}};
   for(int i = 0; i < sizeof(wdp) / sizeof(wdp[0]); ++i){
     FWWinDesc wd;
     wd.title = wdp[i].title;
@@ -510,6 +511,8 @@ void MyApp::Init(int ac, char **av)
 
 /**/
   InitCameraView();
+  CreateCameras();
+  CreateLights();
   CreateObjects();
   CreateTimer();
 }
@@ -534,7 +537,7 @@ void MyApp::Display()
   fwScene->EnableRenderContact(bDrawInfo);
   //fwScene->EnableRenderGrid(bDrawInfo);
 /*
-//  GetSdk()->SetDebugMode(true);
+//  GetSdk()->SetDebugMode(DBG);
   GetSdk()->GetRender()->SetViewMatrix(
     GetCurrentWin()->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
   // ??? // must clear renderer background here ?
@@ -612,7 +615,7 @@ void MyApp::InitCameraView()
 
   float lnd = 60.0f * 12.0f * PNS;
   MyCameraDescPart cdp[] = {
-    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 4.0f, lnd * 4.0f / 5.0f},
+    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 3.0f * PI / 8.0f, lnd * 4.0f / 5.0f},
     {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 36.0f, 20.0f},
     {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 2.0f, 20.0f},
     {0.0f, 0.0f, 0.0f, 17.0f * PI / 36.0f, PI / 36.0f, 95.0f}}; // <= max 99
@@ -622,6 +625,68 @@ void MyApp::InitCameraView()
     tb->SetAngle(cdp[i].lng, cdp[i].lat);
     tb->SetDistance(cdp[i].r);
   }
+}
+
+void MyApp::CreateCameras()
+{
+  GRSdkIf *grSdk = GetSdk()->GetGRSdk();
+  GRSceneIf *grScene = grSdk->GetScene(0);
+
+  const char *src[] = {"desc.transform", "GetTransform", "GetWorldTransform"};
+  GRFrameIf *frm = grScene->GetWorld();
+  GRFrameDesc frmd;
+  frm->GetDesc(&frmd);
+  for(int i = 0; i < 3; ++i){
+    Affinef t;
+    if(!i) t = frmd.transform; // 3x3 Identity
+    else if(i == 1) t = frm->GetTransform(); // 3x3 Identity
+    else t = frm->GetWorldTransform(); // 3x3 Identity
+    fprintf(stdout, "%s:\n", src[i]);
+    fprintf(stdout, " (%7.3f %7.3f %7.3f)\n", t[0][0], t[0][1], t[0][2]);
+    fprintf(stdout, " (%7.3f %7.3f %7.3f)\n", t[1][0], t[1][1], t[1][2]);
+    fprintf(stdout, " (%7.3f %7.3f %7.3f)\n", t[2][0], t[2][1], t[2][2]);
+  }
+// frm->SetTransform(Affinef::Trn(3.0, 0.0, 0.0));
+
+  GRCameraDesc camd;
+  camd.size = Vec2f(0.2f, 0.0f);
+  camd.center = Vec2f();
+  camd.front = 0.1f;
+  camd.back = 500.0f;
+  camd.type = GRCameraDesc::PERSPECTIVE;
+//  GRCameraDesc camd = GetSdk()->GetRender()->GetCamera(); // get OK but black
+//  grScene->SetCamera(camd);
+  for(int i = 0; i < 4; ++i){
+    SetCurrentWin(GetWin(i));
+    GRRenderIf *grRender = GetCurrentWin()->GetRender();
+    grRender->SetCamera(camd);
+  }
+  SetCurrentWin(GetWin(0));
+}
+
+void MyApp::CreateLights()
+{
+  for(int i = 0; i < 4; ++i){
+    SetCurrentWin(GetWin(i));
+    GRRenderIf *grRender = GetCurrentWin()->GetRender();
+    GRLightDesc lightd;
+    lightd.ambient = Vec4f(1, 1, 1, 1) * 0.6f;
+    lightd.diffuse = Vec4f(1, 1, 1, 1) * 0.6f;
+    lightd.specular = Vec4f(1, 1, 1, 1) * 0.6f;
+    lightd.position = Vec4f(0, 50.0f, 0, 0); // (x, y, z, w(0:parallel,1:spot))
+    grRender->PushLight(lightd);
+/*
+    // grRender->SetDepthWrite(true);
+    // grRender->SetDepthTest(true);
+    // grRender->SetDepthFunc(...);
+    // grRender->SetAlphaTest(true);
+    // grRender->SetAlphaMode(..., ...);
+    grRender->SetLighting(true);
+    grRender->PushLight(lightd);
+    grRender->SetCamera(camd);
+*/
+  }
+  SetCurrentWin(GetWin(0));
 }
 
 void MyApp::CreateObjects()
@@ -643,7 +708,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 /**/
   phScene->SetTimeStep(0.050); // default == 0.005
   phScene->SetContactMode(PHSceneDesc::MODE_LCP); // all default == MODE_LCP
-  GetSdk()->SetDebugMode(true); // true works without camera light etc
+//  GetSdk()->SetDebugMode(DBG); // true works without camera light etc
 
 /*
 //  GRSdkIf *grSdk = GRSdkIf::CreateSdk();
