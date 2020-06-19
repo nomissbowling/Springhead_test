@@ -480,53 +480,22 @@ void MyApp::Init(int ac, char **av)
 
   GetSdk()->CreateScene(); // phSdk->CreateScene(); // same ?
 //  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene(); // null pointer ?
-  FWWinDesc wd;
-  wd.title = WIN_TITLE;
-  wd.width = 640;
-  wd.height = 480;
-  wd.left = 160;
-  wd.top = 560;
-  wd.fullscreen = false;
-  CreateWin(wd);
-  GetWin(0)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
-  GetWin(0)->SetScene(GetSdk()->GetScene(0));
-  GetWin(0)->SetDebugMode(true);
 
-//  GetSdk()->CreateScene(); // create but not shown
-  wd.title = WIN_UP;
-  wd.width = 640;
-  wd.height = 480;
-  wd.left = 160;
-  wd.top = 40;
-  wd.fullscreen = false;
-  CreateWin(wd);
-  GetWin(1)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
-  GetWin(1)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
-  GetWin(1)->SetDebugMode(true);
-
-//  GetSdk()->CreateScene(); // create but not shown
-  wd.title = WIN_PINTOP;
-  wd.width = 640;
-  wd.height = 480;
-  wd.left = 840;
-  wd.top = 40;
-  wd.fullscreen = false;
-  CreateWin(wd);
-  GetWin(2)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
-  GetWin(2)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
-  GetWin(2)->SetDebugMode(true);
-
-//  GetSdk()->CreateScene(); // create but not shown
-  wd.title = WIN_SIDE;
-  wd.width = 640;
-  wd.height = 480;
-  wd.left = 840;
-  wd.top = 560;
-  wd.fullscreen = false;
-  CreateWin(wd);
-  GetWin(3)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0)); // reset after
-  GetWin(3)->SetScene(GetSdk()->GetScene(0)); // same as Win(0)
-  GetWin(3)->SetDebugMode(true);
+  MyWinDescPart wdp[] = {
+    {640, 480, 160, 560, WIN_TITLE, false, true},
+    {640, 480, 160, 40, WIN_UP, false, true},
+    {640, 480, 840, 40, WIN_PINTOP, false, true},
+    {640, 480, 840, 560, WIN_SIDE, false, true}};
+  for(int i = 0; i < sizeof(wdp) / sizeof(wdp[0]); ++i){
+    FWWinDesc wd;
+    wd.title = wdp[i].title;
+    wd.width = wdp[i].width, wd.height = wdp[i].height;
+    wd.left = wdp[i].left, wd.top = wdp[i].top;
+    wd.fullscreen = wdp[i].fullscreen, wd.debugMode = wdp[i].debugMode;
+    CreateWin(wd);
+    GetWin(i)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0));
+    GetWin(i)->SetScene(GetSdk()->GetScene(0)); // all Win to Scene 0
+  }
 
   fprintf(stdout, "Scenes: %d\n", GetSdk()->NScene());
   for(int i = 0; i < GetSdk()->NScene(); ++i){
@@ -619,9 +588,8 @@ void MyApp::Keyboard(int key, int x, int y)
 void MyApp::InitCameraView()
 {
 //  FWApp::InitCameraView(); // no method
-//  HITrackballIf *tb = GetCurrentWin()->GetTrackball();
-  HITrackballIf *tb = GetWin(0)->GetTrackball();
 /*
+  HITrackballIf *tb = GetCurrentWin()->GetTrackball();
   std::istringstream issView(
     "((0.9996 0.0107463 -0.0261432 -0.389004)"
     "(-6.55577e-010 0.924909 0.380188 5.65711)"
@@ -631,31 +599,24 @@ void MyApp::InitCameraView()
   // tb->SetAffine(issView); // no method
   tb->xxx(issView.Rot());
   tb->xxx(issView.Trn());
-*/
-
-  float lnd = 60.0f * 12.0f * PNS;
-  tb->SetTarget(Vec3f(-lnd / 4.0f, 0.0f, 0.0f));
-  tb->SetAngle(-1.57f, 0.78f); // -pi/2, pi/4
-  tb->SetDistance(lnd * 4.0f / 5.0f); // <= max 99
-
-  tb = GetWin(1)->GetTrackball();
-  tb->SetTarget(Vec3f(lnd / 2.0f, 0.0f, 0.0f));
-  tb->SetAngle(-1.57f, 0.09f); // -pi/2, pi/36
-  tb->SetDistance(20.0f); // <= max 99
-
-  tb = GetWin(2)->GetTrackball();
-  tb->SetTarget(Vec3f(lnd / 2.0f, 0.0f, 0.0f));
-  tb->SetAngle(-1.57f, 1.57f); // -pi/2, pi/2
-  tb->SetDistance(20.0f); // <= max 99
-
-  tb = GetWin(3)->GetTrackball();
-  tb->SetTarget(Vec3f(0.0f, 0.0f, 0.0f));
 //tb->SetAngle(0.78f, 0.35f); // move camera by angle: look left pi/4 down pi/9
 //tb->SetAngle(1.05f, 0.26f); // pi/3 (-pi<=lng<=pi), pi/12 (-pi/2<=lat<=pi/2)
 //tb->SetAngle(1.31f, 0.09f); // 5pi/12, pi/36
-  tb->SetAngle(1.48f, 0.09f); // 17pi/36, pi/36
 //tb->SetDistance(30.0f);
-  tb->SetDistance(95.0f); // <= max 99
+*/
+
+  float lnd = 60.0f * 12.0f * PNS;
+  MyCameraDescPart cdp[] = {
+    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 4.0f, lnd * 4.0f / 5.0f},
+    {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 36.0f, 20.0f},
+    {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 2.0f, 20.0f},
+    {0.0f, 0.0f, 0.0f, 17.0f * PI / 36.0f, PI / 36.0f, 95.0f}}; // <= max 99
+  for(int i = 0; i < sizeof(cdp) / sizeof(cdp[0]); ++i){
+    HITrackballIf *tb = GetWin(i)->GetTrackball();
+    tb->SetTarget(Vec3f(cdp[i].x, cdp[i].y, cdp[i].z));
+    tb->SetAngle(cdp[i].lng, cdp[i].lat);
+    tb->SetDistance(cdp[i].r);
+  }
 }
 
 void MyApp::CreateObjects()

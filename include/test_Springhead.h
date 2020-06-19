@@ -15,6 +15,16 @@
 
 using namespace Spr;
 
+struct MyCameraDescPart {
+  float x, y, z, lng, lat, r;
+};
+
+struct MyWinDescPart {
+  int width, height, left, top;
+  const char *title;
+  bool fullscreen, debugMode;
+};
+
 class MyApp : public FWApp {
 public:
   bool bDrawInfo;
