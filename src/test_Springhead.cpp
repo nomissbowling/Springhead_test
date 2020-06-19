@@ -496,6 +496,7 @@ void MyApp::Init(int ac, char **av)
     GetWin(i)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0));
     GetWin(i)->SetScene(GetSdk()->GetScene(0)); // all Win to Scene 0
   }
+  SetCurrentWin(GetWin(0));
 
   fprintf(stdout, "Scenes: %d\n", GetSdk()->NScene());
   for(int i = 0; i < GetSdk()->NScene(); ++i){
@@ -516,13 +517,17 @@ void MyApp::Init(int ac, char **av)
 void MyApp::TimerFunc(int id)
 {
 //  FWApp::TimerFunc(id); // skip default
-  GetSdk()->Step();
+//  GetSdk()->Step();
+  for(int i = 0; i < 4; ++i) GetWin(i)->GetScene()->Step();
   PostRedisplay();
 }
 
 void MyApp::Display()
 {
-  FWApp::Display(); // use default
+//  FWApp::Display(); // use default
+  for(int i = 0; i < 4; ++i){ SetCurrentWin(GetWin(i)); GetWin(i)->Display(); }
+  SetCurrentWin(GetWin(0));
+//  for(int i = 0; i < 4; ++i) GetWin(i)->Display(); // bad
   FWSceneIf *fwScene = GetSdk()->GetScene(0);
   fwScene->EnableRenderAxis(bDrawInfo);
   fwScene->EnableRenderForce(bDrawInfo);
