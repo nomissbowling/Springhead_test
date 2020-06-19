@@ -3,6 +3,13 @@ Springhead_test
 
 Springhead test
 
+[animgif]: https://github.com/nomissbowling/Springhead_test/blob/master/res/test_Springhead_bowling_4scenes_20200619.gif?raw=true
+![screenshot][animgif]
+ * https://github.com/nomissbowling/Springhead_test/blob/master/res/test_Springhead_bowling_4scenes_20200619.gif?raw=true
+
+Install memo
+------------
+
 get clone from GitHub Springhead with submodule dependencies
 - git clone --recurse-submodules https://github.com/sprphys/Springhead.git
 
