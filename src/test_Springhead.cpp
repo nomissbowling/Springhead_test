@@ -6,7 +6,7 @@
 
 #include <test_Springhead.h>
 
-bool DBG = true; // true works without camera light etc
+bool DBG = false; // true works without camera light etc
 float PI = 3.14159265358979323846264338327950288419716939937510f;
 float PNS = 0.2f; // scale
 float PNR[][2] = {
@@ -520,11 +520,31 @@ void MyApp::Init(int ac, char **av)
 void MyApp::TimerFunc(int id)
 {
 //  FWApp::TimerFunc(id); // skip default
-//  GetSdk()->Step();
-  for(int i = 0; i < 4; ++i) GetWin(i)->GetScene()->Step();
+  GetSdk()->Step();
+//  for(int i = 0; i < 4; ++i) GetWin(i)->GetScene()->Step(); // speed x 4
   PostRedisplay();
 }
 
+#if 1
+void MyApp::Display()
+{
+//  FWApp::Display(); // skip default
+//  GetCurrentWin()->Display();
+  for(int i = 0; i < 4; ++i){
+    SetCurrentWin(GetWin(i));
+    GetWin(i)->Display();
+    GetSdk()->SetDebugMode(true); // force true
+    GetSdk()->GetRender()->SetViewMatrix(
+      GetWin(i)->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
+    GetSdk()->GetRender()->BeginScene();
+    GetSdk()->GetRender()->ClearBuffer(true, true);
+    GetSdk()->Draw();
+    GetSdk()->GetRender()->EndScene();
+    GetSdk()->GetRender()->SwapBuffers();
+  }
+  SetCurrentWin(GetWin(0));
+}
+#else
 void MyApp::Display()
 {
 //  FWApp::Display(); // skip default
@@ -540,11 +560,14 @@ void MyApp::Display()
 //  GetSdk()->SetDebugMode(DBG);
   GetSdk()->GetRender()->SetViewMatrix(
     GetCurrentWin()->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
-  // ??? // must clear renderer background here ?
+  GetSdk()->GetRender()->BeginScene();
+  GetSdk()->GetRender()->ClearBuffer(true, true);
   GetSdk()->Draw();
+  GetSdk()->GetRender()->EndScene();
   GetSdk()->GetRender()->SwapBuffers();
 */
 }
+#endif
 
 void MyApp::Keyboard(int key, int x, int y)
 {
@@ -674,6 +697,7 @@ void MyApp::CreateLights()
     lightd.diffuse = Vec4f(1, 1, 1, 1) * 0.6f;
     lightd.specular = Vec4f(1, 1, 1, 1) * 0.6f;
     lightd.position = Vec4f(0, 50.0f, 0, 0); // (x, y, z, w(0:parallel,1:spot))
+    grRender->SetLighting(true);
     grRender->PushLight(lightd);
 /*
     // grRender->SetDepthWrite(true);
