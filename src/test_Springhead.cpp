@@ -525,49 +525,32 @@ void MyApp::TimerFunc(int id)
   PostRedisplay();
 }
 
-#if 1
 void MyApp::Display()
 {
 //  FWApp::Display(); // skip default
 //  GetCurrentWin()->Display();
+//  for(int i = 0; i < 4; ++i) GetWin(i)->Display(); // (all Scene in all Win)
   for(int i = 0; i < 4; ++i){
-    SetCurrentWin(GetWin(i));
-    GetWin(i)->Display();
-    GetSdk()->SetDebugMode(true); // force true
-    GetSdk()->GetRender()->SetViewMatrix(
-      GetWin(i)->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
-    GetSdk()->GetRender()->BeginScene();
-    GetSdk()->GetRender()->ClearBuffer(true, true);
-    GetSdk()->Draw();
-    GetSdk()->GetRender()->EndScene();
-    GetSdk()->GetRender()->SwapBuffers();
+    FWWinIf *w = GetWin(i);
+    SetCurrentWin(w);
+//    w->Display();
+    GRRenderIf *grRender = w->GetRender();
+    grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
+    grRender->BeginScene();
+    grRender->ClearBuffer(true, true);
+    FWSceneIf *fwScene = w->GetScene();
+    if(DBG){
+      fwScene->EnableRenderAxis(bDrawInfo);
+      fwScene->EnableRenderForce(bDrawInfo);
+      fwScene->EnableRenderContact(bDrawInfo);
+      //fwScene->EnableRenderGrid(bDrawInfo);
+    }
+    fwScene->Draw(grRender, true); // w->GetDebugMode() or (force true)
+    grRender->EndScene();
+    grRender->SwapBuffers();
   }
   SetCurrentWin(GetWin(0));
 }
-#else
-void MyApp::Display()
-{
-//  FWApp::Display(); // skip default
-  for(int i = 0; i < 4; ++i){ SetCurrentWin(GetWin(i)); GetWin(i)->Display(); }
-  SetCurrentWin(GetWin(0));
-//  for(int i = 0; i < 4; ++i) GetWin(i)->Display(); // (all Scene in all Win)
-  FWSceneIf *fwScene = GetSdk()->GetScene(0);
-  fwScene->EnableRenderAxis(bDrawInfo);
-  fwScene->EnableRenderForce(bDrawInfo);
-  fwScene->EnableRenderContact(bDrawInfo);
-  //fwScene->EnableRenderGrid(bDrawInfo);
-/*
-//  GetSdk()->SetDebugMode(DBG);
-  GetSdk()->GetRender()->SetViewMatrix(
-    GetCurrentWin()->GetTrackball()->GetAffine().inv()); // CurrentWin or Win N
-  GetSdk()->GetRender()->BeginScene();
-  GetSdk()->GetRender()->ClearBuffer(true, true);
-  GetSdk()->Draw();
-  GetSdk()->GetRender()->EndScene();
-  GetSdk()->GetRender()->SwapBuffers();
-*/
-}
-#endif
 
 void MyApp::Keyboard(int key, int x, int y)
 {
