@@ -549,7 +549,14 @@ void MyApp::Display()
     //camd.type = GRCameraDesc::PERSPECTIVE;
     grRender->SetCamera(camd);
 */
-    grRender->SetMaterial(GRRenderBaseIf::WHITE);
+    GRMaterialDesc mat(
+      Vec4f(0.9f, 0.8f, 0.2f, 1.0f), // ambient
+      Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
+      Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
+      Vec4f(0.8f, 0.6f, 0.4f, 1.0f), // emissive
+      10.0); // power
+    grRender->SetMaterial(mat);
+//    grRender->SetMaterial(GRRenderBaseIf::WHITE);
     grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
     FWSceneIf *fwScene = w->GetScene();
     if(DBG){
@@ -559,7 +566,8 @@ void MyApp::Display()
       //fwScene->EnableRenderGrid(bDrawInfo);
     }
     //fwScene->Draw(grRender, w->GetDebugMode());
-    fwScene->Draw(grRender, true); // force true
+    //fwScene->Draw(grRender, true); // force true
+    fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
 if(1){
   grRender->SetLighting(false);
   grRender->SetDepthTest(false);
@@ -596,9 +604,10 @@ if(1){
   grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 11), s);
   sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f %7.3f)", q.w, q.x, q.y, q.z);
   grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 10), s);
+  double cs = cos(angle/2); // == q.w (always same value) (2acos(q.w) == angle)
   double ss = sin(angle/2);
-  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f %7.3f)",
-    cos(angle/2), q.x / ss, q.y / ss, q.z / ss);
+  sprintf_s(s, sizeof(s), "%7.3f [%7.3f %7.3f %7.3f]",
+    2 * acos(q.w), q.x / ss, q.y / ss, q.z / ss);
   grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 8), s);
   grRender->LeaveScreenCoordinate();
   grRender->SetDepthTest(true);
