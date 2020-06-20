@@ -28,6 +28,7 @@ float PNR[][2] = {
   {   3/4.0f, 2.828f},
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+PHSolidIf *soBall_ref = NULL;
 
 void DispVertices(CDShapeIf *shapeCvx)
 {
@@ -344,6 +345,8 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 3.0 * -19.3 * r / 4.8));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+
+  soBall_ref = soBall;
   return soLane;
 }
 
@@ -482,11 +485,11 @@ void MyApp::Init(int ac, char **av)
   GetSdk()->CreateScene(); // phSdk->CreateScene(); // same ?
 //  PHSceneIf *phScene = GetSdk()->GetScene(0)->GetPHScene(); // null pointer ?
 
-  MyWinDescPart wdp[] = {
-    {640, 480, 160, 512, WIN_TITLE, false, DBG},
+  MyWinDescPart wdp[] = { // (title bar height = 32 depends on system env)
+    {640, 480, 160, 480 + 32 + 4, WIN_TITLE, false, DBG},
     {640, 480, 160, 0, WIN_UP, false, DBG},
-    {640, 480, 804, 0, WIN_PINTOP, false, DBG},
-    {640, 480, 804, 512, WIN_SIDE, false, DBG}};
+    {640, 480, 160 + 640 + 4, 0, WIN_PINTOP, false, DBG},
+    {640, 480, 160 + 640 + 4, 480 + 32 + 4, WIN_SIDE, false, DBG}};
   for(int i = 0; i < sizeof(wdp) / sizeof(wdp[0]); ++i){
     FWWinDesc wd;
     wd.title = wdp[i].title;
@@ -511,7 +514,7 @@ void MyApp::Init(int ac, char **av)
 
 /**/
   InitCameraView();
-  CreateCameras();
+  CreateCameras(); // reset cameras in Display() rendering each scene ?
   CreateLights();
   CreateObjects();
   CreateTimer();
@@ -535,9 +538,19 @@ void MyApp::Display()
     SetCurrentWin(w);
 //    w->Display();
     GRRenderIf *grRender = w->GetRender();
-    grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
     grRender->BeginScene();
     grRender->ClearBuffer(true, true);
+/*
+    GRCameraDesc camd = grRender->GetCamera();
+    //camd.size = Vec2f(0.2f, 0.0f);
+    //camd.center = Vec2f();
+    camd.front = 0.3f; // default 0.1f;
+    //camd.back = 500.0f;
+    //camd.type = GRCameraDesc::PERSPECTIVE;
+    grRender->SetCamera(camd);
+*/
+    grRender->SetMaterial(GRRenderBaseIf::WHITE);
+    grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
     FWSceneIf *fwScene = w->GetScene();
     if(DBG){
       fwScene->EnableRenderAxis(bDrawInfo);
@@ -545,7 +558,52 @@ void MyApp::Display()
       fwScene->EnableRenderContact(bDrawInfo);
       //fwScene->EnableRenderGrid(bDrawInfo);
     }
-    fwScene->Draw(grRender, true); // w->GetDebugMode() or (force true)
+    //fwScene->Draw(grRender, w->GetDebugMode());
+    fwScene->Draw(grRender, true); // force true
+if(1){
+  grRender->SetLighting(false);
+  grRender->SetDepthTest(false);
+  grRender->EnterScreenCoordinate();
+  Vec2i scr = w->GetSize();
+  Vec2i sch = scr / 2;
+  Vec2i chr = Vec2i(8, 12); // font (left bottom) place left top (0 0)
+/*
+  GRFont ft;
+  ft.height = chr.y;
+  ft.width = chr.x;
+  //ft.weight = ;
+  ft.color = 0xFFCC33;
+  //ft.bItalic = true;
+  ft.face = "Verdana"; // > (8, 12) ?
+  grRender->SetFont(ft); // calling SetFont() effects to Win(0) only ?
+*/
+  grRender->DrawFont(Vec2f(0.0f, chr.y), "ABC"); // left top 1st line
+  grRender->DrawFont(Vec2f(0.0f, chr.y * 2), "DEF"); // left 2nd line
+  grRender->DrawFont(Vec2f(0.0f, scr.y), "XXXX"); // left bottom
+  grRender->DrawFont(Vec2f(scr.x - chr.x * 3, chr.y), "YYY"); // right top
+  grRender->DrawFont(Vec2f(scr.x - chr.x * 2, scr.y), "ZZ"); // right bottom
+  char s[128];
+  Posed po = soBall_ref->GetPose();
+  Vec3d p = po.Pos();
+  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f)", p.x, p.y, p.z);
+  grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 12), s);
+  Quaterniond q = po.Ori();
+//  Matrix3d m;
+//  q.ToMatrix(m);
+  Vec3d a = q.V(); // q.Axis(); // template TVec3<double> compile error
+  double angle = q.Theta();
+  sprintf_s(s, sizeof(s), "%7.3f (%7.3f %7.3f %7.3f)", angle, a.x, a.y, a.z);
+  grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 11), s);
+  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f %7.3f)", q.w, q.x, q.y, q.z);
+  grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 10), s);
+  double ss = sin(angle/2);
+  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f %7.3f)",
+    cos(angle/2), q.x / ss, q.y / ss, q.z / ss);
+  grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 8), s);
+  grRender->LeaveScreenCoordinate();
+  grRender->SetDepthTest(true);
+  grRender->SetLighting(true);
+}
     grRender->EndScene();
     grRender->SwapBuffers();
   }
