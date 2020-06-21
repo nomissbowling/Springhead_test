@@ -12,6 +12,8 @@
 #define WIN_UP "test_Springhead_Up"
 #define WIN_PINTOP "test_Springhead_PinTop"
 #define WIN_SIDE "test_Springhead_Side"
+#define WIN_BALL "test_Springhead_BALL"
+#define WIN_DEBUG "test_Springhead_Debug"
 
 using namespace Spr;
 
