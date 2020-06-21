@@ -7,7 +7,8 @@
 #include <test_Springhead.h>
 
 bool DBG = false; // true works without camera light etc
-int W = 6; // number of windows
+const int W = 6; // number of windows
+int WinID[W]; // ID
 float PI = 3.14159265358979323846264338327950288419716939937510f;
 float PNS = 0.2f; // scale
 float PNR[][2] = {
@@ -564,8 +565,10 @@ void MyApp::Init(int ac, char **av)
     wd.left = wdp[i].left, wd.top = wdp[i].top;
     wd.fullscreen = wdp[i].fullscreen, wd.debugMode = wdp[i].debugMode;
     CreateWin(wd);
-    GetWin(i)->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0));
-    GetWin(i)->SetScene(GetSdk()->GetScene(0)); // all Win to Scene 0
+    FWWinIf *w = GetWin(i);
+    WinID[i] = w->GetID();
+    w->GetTrackball()->SetPosition(Vec3f(0.0, 0.0, 0.0));
+    w->SetScene(GetSdk()->GetScene(0)); // all Win to Scene 0
   }
   SetCurrentWin(GetWin(0));
 
@@ -594,56 +597,16 @@ void MyApp::TimerFunc(int id)
 //  FWApp::TimerFunc(id); // skip default
   GetSdk()->Step();
 //  for(int i = 0; i < W; ++i) GetWin(i)->GetScene()->Step(); // speed x W
-  PostRedisplay();
+  for(int i = 0; i < W; ++i){
+    SetCurrentWin(GetWin(i));
+    // GetCurrentWin() SetViewMatrix() etc ...
+    PostRedisplay();
+  }
+  SetCurrentWin(GetWin(0));
 }
 
-void MyApp::Display()
+void MyApp::DispInf(FWWinIf *w, FWSceneIf *fwScene, GRRenderIf *grRender)
 {
-//  FWApp::Display(); // skip default
-//  GetCurrentWin()->Display();
-//  for(int i = 0; i < W; ++i) GetWin(i)->Display(); // (all Scene in all Win)
-  for(int i = 0; i < W; ++i){
-    FWWinIf *w = GetWin(i);
-    SetCurrentWin(w);
-//    w->Display();
-    GRRenderIf *grRender = w->GetRender();
-    grRender->BeginScene();
-    grRender->ClearBuffer(true, true);
-/**/
-  if(i == W - 2){
-    GRCameraDesc camd = grRender->GetCamera();
-    //camd.size = Vec2f(0.2f, 0.0f);
-    //camd.center = Vec2f();
-    camd.front = 0.1f + tick / 100.0f; // default 0.1f;
-    if(camd.front > 1.0f) camd.front = 1.0f;
-    //camd.back = 500.0f;
-    //camd.type = GRCameraDesc::PERSPECTIVE;
-    grRender->SetCamera(camd);
-  }
-/**/
-    GRMaterialDesc matd(
-      Vec4f(0.9f, 0.8f, 0.2f, 1.0f), // ambient
-      Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
-      Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
-      Vec4f(0.8f, 0.6f, 0.4f, 1.0f), // emissive
-      10.0); // power
-    grRender->SetMaterial(matd);
-//    grRender->SetMaterial(GRRenderBaseIf::WHITE);
-    grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
-    FWSceneIf *fwScene = w->GetScene();
-    if(i < W - 1) fwScene->SetRenderMode(true, false); // solid
-    else fwScene->SetRenderMode(false, true); // wire
-    if(DBG){
-      fwScene->EnableRenderAxis(bDrawInfo);
-      fwScene->EnableRenderForce(bDrawInfo);
-      fwScene->EnableRenderContact(bDrawInfo);
-      //fwScene->EnableRenderGrid(bDrawInfo);
-    }
-    //fwScene->Draw(grRender, w->GetDebugMode()); // shown when wireframe mode
-    //fwScene->Draw(grRender, true); // force true PH only
-    //fwScene->Draw(grRender, false); // force false GR only
-    fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
-if(1){
   grRender->SetLighting(false);
   grRender->SetDepthTest(false);
   grRender->EnterScreenCoordinate();
@@ -695,10 +658,55 @@ if(1){
   grRender->SetDepthTest(true);
   grRender->SetLighting(true);
 }
-    grRender->EndScene();
-    grRender->SwapBuffers();
+
+void MyApp::Display()
+{
+//  FWApp::Display(); // skip default
+//  GetCurrentWin()->Display();
+//  for(int i = 0; i < W; ++i) GetWin(i)->Display(); // (all Scene in all Win)
+  FWWinIf *w = GetCurrentWin();
+  int id = w->GetID();
+//  w->Display();
+  GRRenderIf *grRender = w->GetRender();
+  grRender->BeginScene();
+  grRender->ClearBuffer(true, true);
+/**/
+  if(id == WinID[W - 2]){ // WIN_BALL
+    GRCameraDesc camd = grRender->GetCamera();
+    //camd.size = Vec2f(0.2f, 0.0f);
+    //camd.center = Vec2f();
+    camd.front = 0.1f + tick / 100.0f; // default 0.1f;
+    if(camd.front > 1.0f) camd.front = 1.0f;
+    //camd.back = 500.0f;
+    //camd.type = GRCameraDesc::PERSPECTIVE;
+    grRender->SetCamera(camd);
   }
-  SetCurrentWin(GetWin(0));
+/**/
+  GRMaterialDesc matd(
+    Vec4f(0.9f, 0.8f, 0.2f, 1.0f), // ambient
+    Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
+    Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
+    Vec4f(0.8f, 0.6f, 0.4f, 1.0f), // emissive
+    10.0); // power
+  grRender->SetMaterial(matd);
+//  grRender->SetMaterial(GRRenderBaseIf::WHITE);
+  grRender->SetViewMatrix(w->GetTrackball()->GetAffine().inv());
+  FWSceneIf *fwScene = w->GetScene();
+  if(id == WinID[W - 1]) fwScene->SetRenderMode(false, true); // wire WIN_DEBUG
+  else fwScene->SetRenderMode(true, false); // solid
+  if(DBG){
+    fwScene->EnableRenderAxis(bDrawInfo);
+    fwScene->EnableRenderForce(bDrawInfo);
+    fwScene->EnableRenderContact(bDrawInfo);
+    //fwScene->EnableRenderGrid(bDrawInfo);
+  }
+  //fwScene->Draw(grRender, w->GetDebugMode()); // shown when wireframe mode
+  //fwScene->Draw(grRender, true); // force true PH only
+  //fwScene->Draw(grRender, false); // force false GR only
+  fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
+  if(id == WinID[W - 1]) DispInf(w, fwScene, grRender); // WIN_DEBUG
+  grRender->EndScene();
+  grRender->SwapBuffers();
 }
 
 void MyApp::Keyboard(int key, int x, int y)
