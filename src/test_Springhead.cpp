@@ -514,6 +514,7 @@ PHSolidIf *CreateRoundCone(FWSdkIf *fwSdk)
 MyApp::MyApp() : FWApp()
 {
   bDrawInfo = false;
+  tick = 0;
 }
 
 MyApp::~MyApp()
@@ -526,7 +527,7 @@ void MyApp::Init(int ac, char **av)
 /**/
   CreateSdk();
 //  PHSdkIf *phSdk = GetSdk()->GetPHSdk();
-  // SetGRAdaptee(TypeGLUT);
+  // SetGRAdaptee(TypeGLUT); // VirtualHuman::TypeGLUT
   GRInit(ac, av);
 
   GetSdk()->CreateScene(); // phSdk->CreateScene(); // same ?
@@ -589,6 +590,7 @@ void MyApp::Init(int ac, char **av)
 
 void MyApp::TimerFunc(int id)
 {
+  ++tick;
 //  FWApp::TimerFunc(id); // skip default
   GetSdk()->Step();
 //  for(int i = 0; i < W; ++i) GetWin(i)->GetScene()->Step(); // speed x W
@@ -607,15 +609,18 @@ void MyApp::Display()
     GRRenderIf *grRender = w->GetRender();
     grRender->BeginScene();
     grRender->ClearBuffer(true, true);
-/*
+/**/
+  if(i == W - 2){
     GRCameraDesc camd = grRender->GetCamera();
     //camd.size = Vec2f(0.2f, 0.0f);
     //camd.center = Vec2f();
-    camd.front = 0.3f; // default 0.1f;
+    camd.front = 0.1f + tick / 100.0f; // default 0.1f;
+    if(camd.front > 1.0f) camd.front = 1.0f;
     //camd.back = 500.0f;
     //camd.type = GRCameraDesc::PERSPECTIVE;
     grRender->SetCamera(camd);
-*/
+  }
+/**/
     GRMaterialDesc matd(
       Vec4f(0.9f, 0.8f, 0.2f, 1.0f), // ambient
       Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
@@ -945,6 +950,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 
 void MyApp::Reset()
 {
+  tick = 0;
 //  FWApp::Reset(); // skip default
   GetSdk()->GetScene(0)->GetPHScene()->Clear();
   CreateObjects();

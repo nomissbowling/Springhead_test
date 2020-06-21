@@ -30,6 +30,7 @@ struct MyWinDescPart {
 class MyApp : public FWApp {
 public:
   bool bDrawInfo;
+  unsigned long tick;
 public:
   MyApp();
   virtual ~MyApp();
