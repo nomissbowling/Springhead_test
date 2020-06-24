@@ -30,6 +30,7 @@ float PNR[][2] = {
   {   3/4.0f, 2.828f},
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+float BALL_R = 8.5f / 2.0f;
 PHSolidIf *soBall_ref = NULL;
 GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
@@ -106,6 +107,47 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
     so[i]->SetFramePosition(np + q); // relative point from so[0]
   }
   return so;
+}
+
+void CreateSphereMesh(GRMeshDesc &meshd, float r, float radius, int sl, int st)
+{
+  int t = sl;
+  int m = st - 1;
+  float c = radius * r;
+  float diameter = radius * 2.0f;
+  meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
+  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
+  meshd.faces = std::vector<GRMeshFace>(m * t * 2); // {int nVertices=3|4, int indices[4]}
+  for(int j = 0; j < m; ++j){
+    for(int k = 0; k < t; ++k){
+      float ph = PI * (j + 1) / st;
+      float p0 = radius * r * (1 - cos(ph));
+      float p1 = radius * r * sin(ph);
+      float th = 2.0f * PI * k / t;
+      int f = (j + 1) * (t + 1) + k - 1;
+      meshd.vertices[f] = Vec3f(p1 * cos(th), p0 - c, p1 * sin(th));
+      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (diameter * r));
+      if(!k){
+        int g = (j + 1) * (t + 1) + t - 1;
+        meshd.vertices[g] = meshd.vertices[f];
+        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
+      }
+      if(j < m - 1){
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+      }
+      if(!j){
+        meshd.vertices[k] = Vec3f(0.0f, -c, 0.0f);
+        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
+        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
+      }else if(j == m - 1){
+        int h = (m + 1) * (t + 1) + k - 1;
+        meshd.vertices[h] = Vec3f(0.0f, p0 - c, 0.0f);
+        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
+      }
+    }
+  }
 }
 
 void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
@@ -330,6 +372,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   GRFrameDesc frmd;
   //frmd.transform = Affinef();
   GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+#if 0
   GRSphereDesc meshd;
   meshd.radius = sd.radius;
   meshd.slices = 24; // 18; // 12; // lng default 16
@@ -338,6 +381,20 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   GRSphereIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
 //  matd.texname = TEX_BALL;
+#else
+  GRMeshDesc meshd;
+  CreateSphereMesh(meshd, r, rad, 24, 12); // slices=24, stacks=12
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+//  meshd.materialList = std::vector<int>{0};
+//  DispMeshDesc(meshd); // long time
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_BALL;
+#endif
   GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
   mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
 //  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
@@ -452,12 +509,11 @@ approach (-apd, 0, 0) apd lnw+gtw*2
 ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 */
   float feetinch = 12.0f;
-  float ballr = 8.5f / 2.0f;
   float apd = 15.35f * feetinch;
   float psd = 2.6f * feetinch, lst = 2.849f * feetinch, pdr = 7.67f * feetinch;
   float aph = apd / 2.0f, lsh = lst / 2.0f;
   float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * feetinch;
-  Vec3f gtsi = Vec3f(lnd + lst, lnh, (ballr * 2.0f + 0.75f) / 2.0f);
+  Vec3f gtsi = Vec3f(lnd + lst, lnh, (BALL_R * 2.0f + 0.75f) / 2.0f);
   float gtp = lnw / 2.0f + gtsi.z;
   CreateHalfPipe(fwSdk, GRRenderBaseIf::LIMEGREEN,
     Vec3d(pos.x + lsh, pos.y, pos.z - gtp), gtsi, r);
@@ -473,49 +529,49 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
 /*
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 3.2f), ballr, r);
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 3.2f), BALL_R, r);
   soBall->SetMass(0.9);
   soBall->SetVelocity(Vec3d(lnd * r / 2.4, 0.0, 0.0));
   soBall->SetAngularVelocity(Vec3d(-5.0, 2.0, -5.0));
 */
 /* // hooking point 50ft ? 7pin only or left gutter
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.9);
   soBall->SetVelocity(Vec3d(lnd * r / 6.0 / 2.4, 0.0, -38.0 * r / 2.4));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -17.5 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? 10pin tap
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.0 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? just ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.4 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? 9pin tap
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.5 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 // hooking point 40ft ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 6.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), ballr, r);
+    pos + Vec3d(lnd / 6.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 3.0 * -19.3 * r / 4.8));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
@@ -931,7 +987,11 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case '.':
     DSTR << "convexmeshpin" << std::endl;
-    CreateConvexMeshPin(GetSdk(), GRRenderBaseIf::GOLD, Vec3d(0, 5, 0), 0.2f);
+    CreateConvexMeshPin(GetSdk(), GRRenderBaseIf::GOLD, Vec3d(0, 5, 0), PNS);
+    break;
+  case ',':
+    DSTR << "spheremeshball" << std::endl;
+    CreateBall(GetSdk(), GRRenderBaseIf::GREEN, Vec3d(0, 6, 0), BALL_R, PNS);
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
