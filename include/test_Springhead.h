@@ -9,11 +9,18 @@
 #include <Framework/SprFWApp.h>
 
 #define WIN_TITLE "test_Springhead"
-#define WIN_UP "test_Springhead_Up"
-#define WIN_PINTOP "test_Springhead_PinTop"
-#define WIN_SIDE "test_Springhead_Side"
-#define WIN_BALL "test_Springhead_BALL"
-#define WIN_DEBUG "test_Springhead_Debug"
+#define WIN_BALL WIN_TITLE"_BALL"
+#define WIN_UP WIN_TITLE"_Up"
+#define WIN_PINTOP WIN_TITLE"_PinTop"
+#define WIN_SIDE WIN_TITLE"_Side"
+#define WIN_DEBUG WIN_TITLE"_Debug"
+
+#define RES_DIR "C:\\prj\\Springhead_test\\res\\"
+#define TEX_PIN RES_DIR"pin_256x256.png"
+#define TEX_BALL RES_DIR"Globe_Lambert_256x81.png"
+#define TEX_PLANE RES_DIR"plane_256x256.png"
+#define TEX_CUBE RES_DIR"cube_256x256.png"
+#define TEX_TETRA RES_DIR"tetra_256x256.png"
 
 using namespace Spr;
 

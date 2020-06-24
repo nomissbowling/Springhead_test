@@ -31,6 +31,38 @@ float PNR[][2] = {
   {     0.0f, 2.250f}};
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 PHSolidIf *soBall_ref = NULL;
+GRMaterialDesc mat_desc = GRMaterialDesc( // common
+  Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
+  Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
+  Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
+  Vec4f(0.5f, 0.5f, 0.5f, 1.0f), // emissive
+  10.0); // power
+
+void DispMeshDesc(GRMeshDesc &meshd)
+{
+  fprintf(stdout, "vertices: %zu\n", meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i){
+    Vec3f v = meshd.vertices[i];
+    fprintf(stdout, " %4d: %7.3f, %7.3f, %7.3f\n", i, v.x, v.y, v.z);
+  }
+  fprintf(stdout, "texCoords: %zu\n", meshd.texCoords.size());
+  for(int i = 0; i < meshd.texCoords.size(); ++i){
+    Vec2f v = meshd.texCoords[i];
+    fprintf(stdout, " %4d: %7.3f, %7.3f\n", i, v.x, v.y);
+  }
+  fprintf(stdout, "colors: %zu\n", meshd.colors.size());
+  for(int i = 0; i < meshd.colors.size(); ++i){
+    Vec4f v = meshd.colors[i];
+    fprintf(stdout, " %4d: %7.3f, %7.3f, %7.3f, %7.3f\n", i,
+      v[0], v[1], v[2], v[3]);
+  }
+  fprintf(stdout, "faces: %zu\n", meshd.faces.size());
+  for(int i = 0; i < meshd.faces.size(); ++i){
+    GRMeshFace v = meshd.faces[i];
+    fprintf(stdout, " %4d: %d: %3d %3d %3d %3d\n", i, v.nVertices,
+      v.indices[0], v.indices[1], v.indices[2], v.indices[3]);
+  }
+}
 
 void DispVertices(CDShapeIf *shapeCvx)
 {
@@ -186,6 +218,100 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   }
   phScene->SetContactMode(cvxs, l, PHSceneDesc::MODE_NONE); // parts of solids
 //  RotAllParts(cvxs, l, Quaterniond::Rot(Rad(-90.0), 'x'));
+
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+  GRMeshDesc meshd;
+#if 0 // now BUG when use real GRMeshDesc (alloc ? or bad face ?)
+  t = 3; // reduce vertices
+  meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
+  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
+  meshd.faces = std::vector<GRMeshFace>(m * t * 2); // {int nVertices=3|4, int indices[4]}
+  for(int j = 0; j < m; ++j){
+    for(int k = 0; k < t; ++k){
+      float p0 = PNR[m - j - 1][0] * r, p1 = PNR[m - j - 1][1] * r / 2.0f;
+      float th = 2.0f * PI * k / t;
+      int f = (j + 1) * (t + 1) + k - 1;
+      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
+      meshd.texCoords[f] = Vec2f((float)k / t, p0 / (PNR[m - 1][0] * r));
+      if(!k){
+        int g = (j + 1) * (t + 1) + t - 1;
+        meshd.vertices[g] = meshd.vertices[f];
+        meshd.texCoords[g] = Vec2f(1.0f, meshd.texCoords[f].y);
+      }
+      if(j < m - 1){
+        meshd.faces[(j*(t+1)+k)*2 + t] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j*(t+1)+k)*2 + t + 1] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+      }
+      if(!j){
+        meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
+        meshd.texCoords[k] = Vec2f((float)k / t + 1.0f / (2.0f * t), 0.0f);
+        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
+      }else if(j == m - 1){
+        int h = (m + 1) * (t + 1) + k - 1;
+        meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
+        meshd.texCoords[h] = Vec2f((float)k / t + 1.0f / (2.0f * t), 1.0f);
+        meshd.faces[j*(t+1)*2 + t - 2 + k] = GRMeshFace{3, {h, f, f+1}};
+      }
+    }
+  }
+#else // OK when dummy GRMeshDesc
+  Vec3f v[] = {{-1, 0, -1}, {1, 0, -1}, {1, 0, 1}, {-1, 0, 1}};
+  t = 4; // len(v)
+  const int M = 2;
+  meshd.vertices = std::vector<Vec3f>((M + 2) * (t + 1) - 2);
+  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
+  meshd.faces = std::vector<GRMeshFace>(M * t * 2); // {int nVertices=3|4, int indices[4]}
+  for(int j = 0; j < M; ++j){
+    for(int k = 0; k < t; ++k){
+      float p0 = 15.0f * r * j / (M - 1);
+      int f = (j + 1) * (t + 1) + k - 1;
+      meshd.vertices[f] = v[k] * 4.0f * r / 2.0f + Vec3f(0.0f, p0, 0.0f);
+      meshd.texCoords[f] = Vec2f((float)k / t, p0 / (15.0f * r));
+      if(!k){
+        int g = (j + 1) * (t + 1) + t - 1;
+        meshd.vertices[g] = meshd.vertices[f];
+        meshd.texCoords[g] = Vec2f(1.0f, meshd.texCoords[f].y);
+      }
+      if(j < M - 1){
+        meshd.faces[(j*(t+1)+k)*2 + t] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j*(t+1)+k)*2 + t + 1] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+      }
+      if(!j){
+        meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
+        meshd.texCoords[k] = Vec2f((float)k / t + 1.0f / (2.0f * t), 0.0f);
+        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
+      }else if(j == M - 1){
+        int h = (M + 1) * (t + 1) + k - 1;
+        meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
+        meshd.texCoords[h] = Vec2f((float)k / t + 1.0f / (2.0f * t), 1.0f);
+        meshd.faces[j*(t+1)*2 + t - 2 + k] = GRMeshFace{3, {h, f, f+1}};
+      }
+    }
+  }
+#endif
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+//  meshd.materialList = std::vector<int>{0};
+//  DispMeshDesc(meshd);
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_PIN;
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
+//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
+//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
+//  grRender->SetMaterial(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(cvxs[0]);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync(); // can not set true ?
+
   return cvxs[0];
 }
 
@@ -223,6 +349,29 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   so->SetCenterPosition(pos * r + Vec3d(0.0, sd.radius, 0.0));
   fwSdk->GetScene(0)->SetSolidMaterial(c, so);
   fwSdk->GetScene(0)->SetWireMaterial(c, so);
+
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+  GRSphereDesc meshd;
+  meshd.radius = sd.radius;
+  meshd.slices = 24; // 18; // 12; // lng default 16
+  meshd.stacks = 18; // lat default 16
+  //meshd.materialList = std::vector<int>{0}; // not a member
+  GRSphereIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialDesc matd = mat_desc;
+//  matd.texname = TEX_BALL;
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
+//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
+//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
+//  grRender->SetMaterial(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(so);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync(); // can not set true ?
+
   return so;
 }
 
@@ -245,6 +394,50 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   soPlane->SetCenterPosition(pos * r);
   fwSdk->GetScene(0)->SetSolidMaterial(c, soPlane);
   fwSdk->GetScene(0)->SetWireMaterial(c, soPlane);
+
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+  GRMeshDesc meshd;
+  CDBoxIf *box = shapePlane->Cast();
+  Vec3f *vtxs = box->GetVertices();
+  meshd.vertices = std::vector<Vec3f>(8); // not found box->GetVtxCount()
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.vertices[i] = vtxs[i];
+  // CDFaceIf *face = box->GetFace(0); // always NULL ! not found box->NFace()
+  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
+    // CDBox vertices order is NOT same with ConvexMeshCube
+    // replace CDBox vertices[73460251] <- vertices[01234567] ConvexMeshCube
+    // ( x  y -z) ( x  y  z) ( x -y  z) ( x -y -z)
+    // (-x  y -z) (-x  y  z) (-x -y  z) (-x -y -z)
+    {4, {7, 4, 0, 3}}, {4, {7, 6, 5, 4}}, {4, {7, 3, 2, 6}},
+    {4, {1, 0, 4, 5}}, {4, {1, 2, 3, 0}}, {4, {1, 5, 6, 2}}};
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+#if 0
+  meshd.colors = std::vector<Vec4f>{
+    {.5f,.5f,.5f, 1}, {.9f,  0,  0, 1}, {  0,.9f,  0, 1}, {  0,  0,.9f, 1},
+    {.9f,.9f,  0, 1}, {.9f,  0,.9f, 1}, {  0,.9f,.9f, 1}, {.9f,.9f,.9f, 1}};
+#else
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
+  meshd.colors = std::vector<Vec4f>{col, col, col, col, col, col, col, col};
+#endif
+  meshd.texCoords = std::vector<Vec2f>{
+    {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
+//  meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_PLANE;
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
+//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
+//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
+//  grRender->SetMaterial(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(soPlane);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync(); // can not set true ?
+
   return soPlane;
 }
 
@@ -391,22 +584,22 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 #endif
   GRMeshDesc meshd; // SprGRMesh.h SprGRFrame.h SprCDShape.h
   meshd.vertices = vertices;
-/*
-  meshd.faces = vector<GRMeshFace>{}; // {int nVertices=(3or4), int indices[4]}
-  //meshd.normals = vector<Vec3f>{};
-  //meshd.faceNormals = vector<GRMeshFace>{};
-  meshd.colors = vector<Vec4f>{};
-  meshd.texCoords = vector<Vec2f>{};
-  meshd.materialList = vector<int>{};
-*/
+  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
+    {3, {0, 2, 1}}, {3, {0, 3, 2}}, {3, {0, 1, 3}}, {3, {1, 2, 3}}};
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+#if 0
+  meshd.colors = std::vector<Vec4f>{
+    {.5f,.5f,.5f, 1}, {.9f,.7f,.2f, 1}, {.2f,.9f,.7f, 1}, {.7f,.2f,.9f, 1}};
+#else
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::INDIGO);
+  meshd.colors = std::vector<Vec4f>{col, col, col, col};
+#endif
+  meshd.texCoords = std::vector<Vec2f>{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
+//  meshd.materialList = std::vector<int>{0};
   GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
-  GRMaterialDesc matd(
-    Vec4f(0.9f, 0.8f, 0.2f, 1.0f), // ambient
-    Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
-    Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
-    Vec4f(0.8f, 0.6f, 0.4f, 1.0f), // emissive
-    10.0); // power
-  matd.texname = "texname";
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_TETRA;
   GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
   mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
 //  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
@@ -442,6 +635,42 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   // 001 100 101, 110 000 010, 000 011 010, 101 110 111,
   // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
   // 100 000 110, 011 001 101, 100 110 101, 011 110 010
+
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+  GRMeshDesc meshd;
+  meshd.vertices = vertices;
+  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
+    {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
+    {4, {7, 4, 2, 6}}, {4, {7, 5, 1, 4}}, {4, {7, 6, 3, 5}}};
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+#if 0
+  meshd.colors = std::vector<Vec4f>{
+    {.5f,.5f,.5f, 1}, {.9f,  0,  0, 1}, {  0,.9f,  0, 1}, {  0,  0,.9f, 1},
+    {.9f,.9f,  0, 1}, {.9f,  0,.9f, 1}, {  0,.9f,.9f, 1}, {.9f,.9f,.9f, 1}};
+#else
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::DEEPSKYBLUE);
+  meshd.colors = std::vector<Vec4f>{col, col, col, col, col, col, col, col};
+#endif
+  meshd.texCoords = std::vector<Vec2f>{
+    {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
+//  meshd.materialList = std::vector<int>{0};
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_CUBE;
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
+//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
+//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
+//  grRender->SetMaterial(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(cvx);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync(); // can not set true ?
+
   return cvx;
 }
 
@@ -552,11 +781,11 @@ void MyApp::Init(int ac, char **av)
 */
 
   MyWinDescPart wdp[] = { // (title bar height = 32 depends on system env)
-    {640, 480, 120, 480 + 32 + 4, WIN_TITLE, false, DBG},
+    {640, 480, 120, 480 + 32 + 4, WIN_BALL, false, DBG},
     {640, 480, 120, 0, WIN_UP, false, DBG},
     {640, 480, 120 + 640 + 4, 0, WIN_PINTOP, false, DBG},
     {640, 480, 120 + 640 + 4, 480 + 32 + 4, WIN_SIDE, false, DBG},
-    {480, 360, 120 + (640 + 4) * 2, 0, WIN_BALL, false, DBG},
+    {480, 360, 120 + (640 + 4) * 2, 0, WIN_TITLE, false, DBG},
     {480, 360, 120 + (640 + 4) * 2, 360 + 32 + 4, WIN_DEBUG, false, true}};
   for(int i = 0; i < sizeof(wdp) / sizeof(wdp[0]); ++i){
     FWWinDesc wd;
@@ -671,7 +900,7 @@ void MyApp::Display()
   grRender->BeginScene();
   grRender->ClearBuffer(true, true);
 /**/
-  if(id == WinID[W - 2]){ // WIN_BALL
+  if(id == WinID[0]){ // WIN_BALL
     GRCameraDesc camd = grRender->GetCamera();
     //camd.size = Vec2f(0.2f, 0.0f);
     //camd.center = Vec2f();
@@ -700,10 +929,10 @@ void MyApp::Display()
     fwScene->EnableRenderContact(bDrawInfo);
     //fwScene->EnableRenderGrid(bDrawInfo);
   }
-  //fwScene->Draw(grRender, w->GetDebugMode()); // shown when wireframe mode
+  fwScene->Draw(grRender, w->GetDebugMode()); // shown when wireframe mode
   //fwScene->Draw(grRender, true); // force true PH only
   //fwScene->Draw(grRender, false); // force false GR only
-  fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
+  //fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
   if(id == WinID[W - 1]) DispInf(w, fwScene, grRender); // WIN_DEBUG
   grRender->EndScene();
   grRender->SwapBuffers();
@@ -778,11 +1007,11 @@ void MyApp::InitCameraView()
 
   float lnd = 60.0f * 12.0f * PNS;
   MyCameraDescPart cdp[] = {
-    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 3.0f * PI / 8.0f, lnd * 4.0f / 5.0f},
+    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 0.0f, lnd * 3.0f / 10.0f},
     {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 36.0f, 20.0f},
     {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 2.0f, 20.0f},
     {0.0f, 0.0f, 0.0f, 17.0f * PI / 36.0f, PI / 36.0f, 95.0f}, // <= max 99
-    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 0.0f, lnd * 3.0f / 10.0f},
+    {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 3.0f * PI / 8.0f, lnd * 4.0f / 5.0f},
     {0.0f, 0.0f, 0.0f, -PI / 3.0f, PI / 9.0f, 10.0f}};
   for(int i = 0; i < sizeof(cdp) / sizeof(cdp[0]); ++i){
     HITrackballIf *tb = GetWin(i)->GetTrackball();
@@ -961,6 +1190,7 @@ void MyApp::Reset()
   tick = 0;
 //  FWApp::Reset(); // skip default
   GetSdk()->GetScene(0)->GetPHScene()->Clear();
+  GetSdk()->GetScene(0)->GetGRScene()->Clear();
   CreateObjects();
 }
 

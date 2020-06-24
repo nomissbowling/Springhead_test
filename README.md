@@ -10,7 +10,7 @@ Springhead test
 Install memo
 ------------
 
-get clone from GitHub Springhead with submodule dependencies
+get clone from GitHub Springhead with submodule dependencies (tested 57fe4ca9741115099c427ed9f56c0a9829341eec)
 - git clone --recurse-submodules https://github.com/sprphys/Springhead.git
 
 mkdir
