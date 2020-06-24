@@ -224,8 +224,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   //frmd.transform = Affinef();
   GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
-#if 0 // now BUG when use real GRMeshDesc (alloc ? or bad face ?)
-  t = 3; // reduce vertices
+#if 1
   meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
   meshd.faces = std::vector<GRMeshFace>(m * t * 2); // {int nVertices=3|4, int indices[4]}
@@ -235,59 +234,59 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
       float th = 2.0f * PI * k / t;
       int f = (j + 1) * (t + 1) + k - 1;
       meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
-      meshd.texCoords[f] = Vec2f((float)k / t, p0 / (PNR[m - 1][0] * r));
+      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (PNR[0][0] * r));
       if(!k){
         int g = (j + 1) * (t + 1) + t - 1;
         meshd.vertices[g] = meshd.vertices[f];
-        meshd.texCoords[g] = Vec2f(1.0f, meshd.texCoords[f].y);
+        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
       }
       if(j < m - 1){
-        meshd.faces[(j*(t+1)+k)*2 + t] = GRMeshFace{3, {f, f+1, f+1+t+1}};
-        meshd.faces[(j*(t+1)+k)*2 + t + 1] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
       }
       if(!j){
         meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
-        meshd.texCoords[k] = Vec2f((float)k / t + 1.0f / (2.0f * t), 0.0f);
+        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
         meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
       }else if(j == m - 1){
         int h = (m + 1) * (t + 1) + k - 1;
         meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
-        meshd.texCoords[h] = Vec2f((float)k / t + 1.0f / (2.0f * t), 1.0f);
-        meshd.faces[j*(t+1)*2 + t - 2 + k] = GRMeshFace{3, {h, f, f+1}};
+        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
       }
     }
   }
-#else // OK when dummy GRMeshDesc
-  Vec3f v[] = {{-1, 0, -1}, {1, 0, -1}, {1, 0, 1}, {-1, 0, 1}};
-  t = 4; // len(v)
-  const int M = 2;
+#else
+  t = 6;
+  const int M = 3;
   meshd.vertices = std::vector<Vec3f>((M + 2) * (t + 1) - 2);
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
   meshd.faces = std::vector<GRMeshFace>(M * t * 2); // {int nVertices=3|4, int indices[4]}
   for(int j = 0; j < M; ++j){
     for(int k = 0; k < t; ++k){
-      float p0 = 15.0f * r * j / (M - 1);
+      float p0 = 15.0f * r * j / (M - 1), p1 = 4.766f * r / 2.0f;
+      float th = 2.0f * PI * k / t;
       int f = (j + 1) * (t + 1) + k - 1;
-      meshd.vertices[f] = v[k] * 4.0f * r / 2.0f + Vec3f(0.0f, p0, 0.0f);
-      meshd.texCoords[f] = Vec2f((float)k / t, p0 / (15.0f * r));
+      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
+      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (15.0f * r));
       if(!k){
         int g = (j + 1) * (t + 1) + t - 1;
         meshd.vertices[g] = meshd.vertices[f];
-        meshd.texCoords[g] = Vec2f(1.0f, meshd.texCoords[f].y);
+        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
       }
       if(j < M - 1){
-        meshd.faces[(j*(t+1)+k)*2 + t] = GRMeshFace{3, {f, f+1, f+1+t+1}};
-        meshd.faces[(j*(t+1)+k)*2 + t + 1] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
       }
       if(!j){
         meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
-        meshd.texCoords[k] = Vec2f((float)k / t + 1.0f / (2.0f * t), 0.0f);
+        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
         meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
       }else if(j == M - 1){
         int h = (M + 1) * (t + 1) + k - 1;
         meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
-        meshd.texCoords[h] = Vec2f((float)k / t + 1.0f / (2.0f * t), 1.0f);
-        meshd.faces[j*(t+1)*2 + t - 2 + k] = GRMeshFace{3, {h, f, f+1}};
+        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
       }
     }
   }
@@ -298,7 +297,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
-//  DispMeshDesc(meshd);
+//  DispMeshDesc(meshd); // long time
   GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_PIN;
