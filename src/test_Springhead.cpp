@@ -108,6 +108,41 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
+void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
+{
+  meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
+  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
+  meshd.faces = std::vector<GRMeshFace>(m * t * 2); // {int nVertices=3|4, int indices[4]}
+  for(int j = 0; j < m; ++j){
+    for(int k = 0; k < t; ++k){
+      float p0 = p[m - j - 1][0] * r, p1 = p[m - j - 1][1] * r / 2.0f;
+      float th = 2.0f * PI * k / t;
+      int f = (j + 1) * (t + 1) + k - 1;
+      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
+      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (p[0][0] * r));
+      if(!k){
+        int g = (j + 1) * (t + 1) + t - 1;
+        meshd.vertices[g] = meshd.vertices[f];
+        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
+      }
+      if(j < m - 1){
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
+        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
+      }
+      if(!j){
+        meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
+        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
+        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
+      }else if(j == m - 1){
+        int h = (m + 1) * (t + 1) + k - 1;
+        meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
+        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
+        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
+      }
+    }
+  }
+}
+
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 {
   FWSceneIf *fwScene = fwSdk->GetScene(0);
@@ -225,71 +260,13 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
 #if 1
-  meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
-  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
-  meshd.faces = std::vector<GRMeshFace>(m * t * 2); // {int nVertices=3|4, int indices[4]}
-  for(int j = 0; j < m; ++j){
-    for(int k = 0; k < t; ++k){
-      float p0 = PNR[m - j - 1][0] * r, p1 = PNR[m - j - 1][1] * r / 2.0f;
-      float th = 2.0f * PI * k / t;
-      int f = (j + 1) * (t + 1) + k - 1;
-      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
-      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (PNR[0][0] * r));
-      if(!k){
-        int g = (j + 1) * (t + 1) + t - 1;
-        meshd.vertices[g] = meshd.vertices[f];
-        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
-      }
-      if(j < m - 1){
-        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
-        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
-      }
-      if(!j){
-        meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
-        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
-        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
-      }else if(j == m - 1){
-        int h = (m + 1) * (t + 1) + k - 1;
-        meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
-        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
-        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
-      }
-    }
-  }
+  CreateCylinderMesh(meshd, r, PNR, m, t);
 #else
-  t = 6;
-  const int M = 3;
-  meshd.vertices = std::vector<Vec3f>((M + 2) * (t + 1) - 2);
-  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
-  meshd.faces = std::vector<GRMeshFace>(M * t * 2); // {int nVertices=3|4, int indices[4]}
-  for(int j = 0; j < M; ++j){
-    for(int k = 0; k < t; ++k){
-      float p0 = 15.0f * r * j / (M - 1), p1 = 4.766f * r / 2.0f;
-      float th = 2.0f * PI * k / t;
-      int f = (j + 1) * (t + 1) + k - 1;
-      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
-      meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - p0 / (15.0f * r));
-      if(!k){
-        int g = (j + 1) * (t + 1) + t - 1;
-        meshd.vertices[g] = meshd.vertices[f];
-        meshd.texCoords[g] = Vec2f(0.0f, meshd.texCoords[f].y);
-      }
-      if(j < M - 1){
-        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {f, f+1, f+1+t+1}};
-        meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
-      }
-      if(!j){
-        meshd.vertices[k] = Vec3f(0.0f, 0.0f, 0.0f);
-        meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
-        meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
-      }else if(j == M - 1){
-        int h = (M + 1) * (t + 1) + k - 1;
-        meshd.vertices[h] = Vec3f(0.0f, p0, 0.0f);
-        meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
-        meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
-      }
-    }
-  }
+  float DUMMY[][2] = {
+    {15.0f, 4.766f}, // 0.800f},
+    {10.0f, 4.766f}, // 1.797f},
+    { 0.0f, 4.766f}}; // 2.250f}};
+  CreateCylinderMesh(meshd, r, DUMMY, sizeof(DUMMY) / sizeof(DUMMY[0]), 6);
 #endif
   //meshd.normals = std::vector<Vec3f>{};
   //meshd.faceNormals = std::vector<GRMeshFace>{};
