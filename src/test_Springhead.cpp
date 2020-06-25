@@ -186,6 +186,50 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
   }
 }
 
+void CreateCubeMesh(GRMeshDesc &meshd, float r, Vec3f sz,
+  std::vector<Vec3f> &vertices, std::vector<GRMeshFace> &faces)
+{
+  std::vector<Vec2f> coords = std::vector<Vec2f>{
+    {1, 0}, {1, 1}, {0, 1}, {0, 0}};
+  int nv = faces[0].nVertices; // face: number of vertices = 4
+  int nf = (int)faces.size(); // cube: number of faces = 6
+  meshd.vertices = std::vector<Vec3f>(nv * nf);
+  meshd.faces = std::vector<GRMeshFace>(nf); // {int nVertices=3|4, int indices[4]}
+  meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
+  for(int i = 0; i < nf; ++i){
+    GRMeshFace g = GRMeshFace{nv, {0, 0, 0, 0}};
+    GRMeshFace &f = faces[i];
+    for(int j = 0; j < nv; ++j){
+      g.indices[j] = i * nv + j;
+      meshd.vertices[g.indices[j]] = vertices[f.indices[j]];
+      meshd.texCoords[g.indices[j]] = coords[j];
+    }
+    meshd.faces[i] = g;
+  }
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+  //meshd.colors = std::vector<Vec4f>{};
+  //meshd.texCoords = std::vector<Vec2f>{};
+  //meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
+}
+
+void CreateBoxMesh(GRMeshDesc &meshd, float r, Vec3f sz, CDShapeIf *shape)
+{
+  CDBoxIf *box = shape->Cast();
+  Vec3f *vtxs = box->GetVertices(); // not found box->GetVtxCount()
+  std::vector<Vec3f> vertices = std::vector<Vec3f>(8);
+  for(int i = 0; i < vertices.size(); ++i) vertices[i] = vtxs[i];
+  // CDFaceIf *face = box->GetFace(0); // always NULL ! not found box->NFace()
+  std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
+    // CDBox vertices order is NOT same with ConvexMeshCube
+    // replace CDBox vertices[73460251] <- vertices[01234567] ConvexMeshCube
+    // ( x  y -z) ( x  y  z) ( x -y  z) ( x -y -z)
+    // (-x  y -z) (-x  y  z) (-x -y  z) (-x -y -z)
+    {4, {7, 4, 0, 3}}, {4, {7, 6, 5, 4}}, {4, {7, 3, 2, 6}},
+    {4, {1, 0, 4, 5}}, {4, {1, 2, 3, 0}}, {4, {1, 5, 6, 2}}};
+  CreateCubeMesh(meshd, r, sz, vertices, faces);
+}
+
 void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
   GRMeshDesc &meshd, GRMaterialDesc &matd, GRFrameDesc &frmd=frm_desc)
 {
@@ -206,6 +250,25 @@ void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
   fwObj->SetPHSolid(so);
   fwObj->SetGRFrame(frm);
   fwSdk->GetScene(0)->Sync(); // can not set true ?
+}
+
+void BindSolidBox(FWSdkIf *fwSdk, PHSolidIf *so, float r, Vec3f sz, int c)
+{
+  CDShapeIf *shape = so->GetShape(0);
+  GRMeshDesc meshd;
+  CreateBoxMesh(meshd, r, sz, shape);
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+#if 0 // no more match vertices.size()
+  meshd.colors = std::vector<Vec4f>{
+    {.5f,.5f,.5f, 1}, {.9f,  0,  0, 1}, {  0,.9f,  0, 1}, {  0,  0,.9f, 1},
+    {.9f,.9f,  0, 1}, {.9f,  0,.9f, 1}, {  0,.9f,.9f, 1}, {.9f,.9f,.9f, 1}};
+#endif
+//  meshd.materialList = std::vector<int>{0};
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_PLANE;
+  BindSolidFrame(fwSdk, so, meshd, matd);
 }
 
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
@@ -420,35 +483,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   fwSdk->GetScene(0)->SetSolidMaterial(c, soPlane);
   fwSdk->GetScene(0)->SetWireMaterial(c, soPlane);
 
-  GRMeshDesc meshd;
-  CDBoxIf *box = shapePlane->Cast();
-  Vec3f *vtxs = box->GetVertices();
-  meshd.vertices = std::vector<Vec3f>(8); // not found box->GetVtxCount()
-  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.vertices[i] = vtxs[i];
-  // CDFaceIf *face = box->GetFace(0); // always NULL ! not found box->NFace()
-  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
-    // CDBox vertices order is NOT same with ConvexMeshCube
-    // replace CDBox vertices[73460251] <- vertices[01234567] ConvexMeshCube
-    // ( x  y -z) ( x  y  z) ( x -y  z) ( x -y -z)
-    // (-x  y -z) (-x  y  z) (-x -y  z) (-x -y -z)
-    {4, {7, 4, 0, 3}}, {4, {7, 6, 5, 4}}, {4, {7, 3, 2, 6}},
-    {4, {1, 0, 4, 5}}, {4, {1, 2, 3, 0}}, {4, {1, 5, 6, 2}}};
-  //meshd.normals = std::vector<Vec3f>{};
-  //meshd.faceNormals = std::vector<GRMeshFace>{};
-#if 0
-  meshd.colors = std::vector<Vec4f>{
-    {.5f,.5f,.5f, 1}, {.9f,  0,  0, 1}, {  0,.9f,  0, 1}, {  0,  0,.9f, 1},
-    {.9f,.9f,  0, 1}, {.9f,  0,.9f, 1}, {  0,.9f,.9f, 1}, {.9f,.9f,.9f, 1}};
-#else
-  Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
-  meshd.colors = std::vector<Vec4f>{col, col, col, col, col, col, col, col};
-#endif
-  meshd.texCoords = std::vector<Vec2f>{
-    {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
-//  meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
-  GRMaterialDesc matd = mat_desc;
-  matd.texname = TEX_PLANE;
-  BindSolidFrame(fwSdk, soPlane, meshd, matd);
+  BindSolidBox(fwSdk, soPlane, r, sz, c);
   return soPlane;
 }
 
@@ -628,23 +663,14 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
   // 100 000 110, 011 001 101, 100 110 101, 011 110 010
 
-  GRMeshDesc meshd;
-  meshd.vertices = vertices;
-  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
+  std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
     {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
     {4, {7, 4, 2, 6}}, {4, {7, 5, 1, 4}}, {4, {7, 6, 3, 5}}};
-  //meshd.normals = std::vector<Vec3f>{};
-  //meshd.faceNormals = std::vector<GRMeshFace>{};
-#if 0
-  meshd.colors = std::vector<Vec4f>{
-    {.5f,.5f,.5f, 1}, {.9f,  0,  0, 1}, {  0,.9f,  0, 1}, {  0,  0,.9f, 1},
-    {.9f,.9f,  0, 1}, {.9f,  0,.9f, 1}, {  0,.9f,.9f, 1}, {.9f,.9f,.9f, 1}};
-#else
-  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::DEEPSKYBLUE);
-  meshd.colors = std::vector<Vec4f>{col, col, col, col, col, col, col, col};
-#endif
-  meshd.texCoords = std::vector<Vec2f>{
-    {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
+  GRMeshDesc meshd;
+  CreateCubeMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces);
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::NAVY);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_CUBE;
@@ -665,6 +691,9 @@ PHSolidIf *CreateBox(FWSdkIf *fwSdk)
   soBox->SetFramePosition(Vec3d(0, 10, 0));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::DODGERBLUE, soBox);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::DODGERBLUE, soBox);
+
+  BindSolidBox(fwSdk, soBox, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::DODGERBLUE);
   return soBox;
 }
 
@@ -1138,6 +1167,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   floor->SetFramePosition(Vec3d(0, -1.0, 0));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::HOTPINK, floor);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::HOTPINK, floor);
+  BindSolidBox(fwSdk, floor, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::HOTPINK);
 
   PHSolidIf *box = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
@@ -1149,6 +1180,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   box->AddForce(-Vec3d(0.0, 0.0, -5.0), Vec3d(0.15, 0.85, 0.0));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::BLUE, box);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::BLUE, box);
+  BindSolidBox(fwSdk, box, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::BLUE);
 
   PHSolidIf *sol = phScene->CreateSolid(sd); // sol->SetMass(5.0); // etc
   bd.boxsize = Vec3f(0.5f, 0.3f, 0.3f);
@@ -1158,6 +1191,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   sol->SetAngularVelocity(-Vec3d(0.5, 0.5, 0.5));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::ORANGERED, sol);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::ORANGERED, sol);
+  BindSolidBox(fwSdk, sol, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::ORANGERED);
 
   PHSolidIf *sol0 = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
@@ -1165,12 +1200,16 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   sol0->SetCenterPosition(Vec3d(0.5, 0.5, -0.5));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::CYAN, sol0);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::CYAN, sol0);
+  BindSolidBox(fwSdk, sol0, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::CYAN);
   PHSolidIf *sol1 = phScene->CreateSolid(sd);
   bd.boxsize = Vec3f(0.2f, 0.2f, 0.2f);
   sol1->AddShape(phSdk->CreateShape(bd));
   sol1->SetCenterPosition(Vec3d(0.5, 0.5, 0.5));
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::MAGENTA, sol1);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::MAGENTA, sol1);
+  BindSolidBox(fwSdk, sol1, 1.0f, Vec3f(1.0f, 1.0f, 1.0f),
+    GRRenderBaseIf::MAGENTA);
   PHHingeJointDesc hjd;
   hjd.poseSocket.Pos() = Vec3d(1.0, 0.0, 0.0);
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
