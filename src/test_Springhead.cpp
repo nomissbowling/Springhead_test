@@ -1126,6 +1126,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 /**/
   phScene->SetTimeStep(0.050); // default == 0.005
   phScene->SetContactMode(PHSceneDesc::MODE_LCP); // all default == MODE_LCP
+  //phScene->GetConstraintEngine()->SetUseContactSurface(true); // face contact
 //  GetSdk()->SetDebugMode(DBG); // true works without camera light etc
 
 /*
