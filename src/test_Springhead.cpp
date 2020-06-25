@@ -595,13 +595,12 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 
 PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 {
+  float w = 1 - tan(15 * PI / 180); // float a = w * sqrt(2.0f);
+  float g = (1 + w) / 3;
+  float h = 2 * sqrt(3.0f) * w / 3;
+  float c = h / 3;
   std::vector<Vec3f> vertices = {
-    Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1)};
-//  int indices[4][3] = {{0, 1, 2}, {0, 2, 3}, {0, 3, 1}, {1, 2, 3}};
-//  CDFaceDesc fd[4]; // not defined
-//  for(int i = 0; i < 4; ++i) fd[i].indices = &indices[i];
-//  CDFaceIf *faces[4] = new CDFaceIf *[4];
-//  for(int i = 0; i < 4; ++i) faces[i] = fwSdk->GetPHSdk()->CreateShape(fd[i]);
+    {0, h - c, 0}, {w - g, -c, -g}, {1 - g, -c, 1 - g}, {-g, -c, w - g}};
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
@@ -617,7 +616,6 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::PLUM, cvx);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::PLUM, cvx);
 //  DispVertices(shapeCvx); // 4 - 4 - 3
-  // 100 000 010, 100 010 001, 010 000 001, 000 100 001
 
   std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
     {3, {1, 0, 2}}, {3, {2, 0, 3}}, {3, {3, 0, 1}}, {3, {1, 2, 3}}};
@@ -640,8 +638,8 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
 {
   std::vector<Vec3f> vertices = {
-    Vec3f(0, 0, 0), Vec3f(1, 0, 0), Vec3f(0, 1, 0), Vec3f(0, 0, 1),
-    Vec3f(1, 1, 0), Vec3f(1, 0, 1), Vec3f(0, 1, 1), Vec3f(1, 1, 1)};
+    {-1, -1, -1}, {1, -1, -1}, {-1, 1, -1}, {-1, -1, 1},
+    {1, 1, -1}, {1, -1, 1}, {-1, 1, 1}, {1, 1, 1}};
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
@@ -656,9 +654,6 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::DEEPSKYBLUE, cvx);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::DEEPSKYBLUE, cvx);
 //  DispVertices(shapeCvx); // 8 - 12 - 3
-  // 001 100 101, 110 000 010, 000 011 010, 101 110 111,
-  // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
-  // 100 000 110, 011 001 101, 100 110 101, 011 110 010
 
   std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
     {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
