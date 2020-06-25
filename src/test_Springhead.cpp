@@ -186,13 +186,13 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
   }
 }
 
-void CreateCubeMesh(GRMeshDesc &meshd, float r, Vec3f sz,
+void CreateFaceMesh(GRMeshDesc &meshd, float r, Vec3f sz,
   std::vector<Vec3f> &vertices, std::vector<GRMeshFace> &faces)
 {
   std::vector<Vec2f> coords = std::vector<Vec2f>{
-    {1, 0}, {1, 1}, {0, 1}, {0, 0}};
-  int nv = faces[0].nVertices; // face: number of vertices = 4
-  int nf = (int)faces.size(); // cube: number of faces = 6
+    {1, 0}, {1, 1}, {0, 1}, {0, 0}}; // 4 or 3
+  int nv = faces[0].nVertices; // face: number of vertices = 4 or 3
+  int nf = (int)faces.size(); // cube: number of faces = 6 or 4 etc
   meshd.vertices = std::vector<Vec3f>(nv * nf);
   meshd.faces = std::vector<GRMeshFace>(nf); // {int nVertices=3|4, int indices[4]}
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
@@ -227,7 +227,7 @@ void CreateBoxMesh(GRMeshDesc &meshd, float r, Vec3f sz, CDShapeIf *shape)
     // (-x  y -z) (-x  y  z) (-x -y  z) (-x -y -z)
     {4, {7, 4, 0, 3}}, {4, {7, 6, 5, 4}}, {4, {7, 3, 2, 6}},
     {4, {1, 0, 4, 5}}, {4, {1, 2, 3, 0}}, {4, {1, 5, 6, 2}}};
-  CreateCubeMesh(meshd, r, sz, vertices, faces);
+  CreateFaceMesh(meshd, r, sz, vertices, faces);
 }
 
 void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
@@ -619,20 +619,17 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 //  DispVertices(shapeCvx); // 4 - 4 - 3
   // 100 000 010, 100 010 001, 010 000 001, 000 100 001
 
+  std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
+    {3, {1, 0, 2}}, {3, {2, 0, 3}}, {3, {3, 0, 1}}, {3, {1, 2, 3}}};
   GRMeshDesc meshd;
-  meshd.vertices = vertices;
-  meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
-    {3, {0, 2, 1}}, {3, {0, 3, 2}}, {3, {0, 1, 3}}, {3, {1, 2, 3}}};
-  //meshd.normals = std::vector<Vec3f>{};
-  //meshd.faceNormals = std::vector<GRMeshFace>{};
-#if 0
+  CreateFaceMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces);
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::INDIGO);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+#if 0 // no more match vertices.size()
   meshd.colors = std::vector<Vec4f>{
     {.5f,.5f,.5f, 1}, {.9f,.7f,.2f, 1}, {.2f,.9f,.7f, 1}, {.7f,.2f,.9f, 1}};
-#else
-  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::INDIGO);
-  meshd.colors = std::vector<Vec4f>{col, col, col, col};
 #endif
-  meshd.texCoords = std::vector<Vec2f>{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_TETRA;
@@ -667,7 +664,7 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
     {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
     {4, {7, 4, 2, 6}}, {4, {7, 5, 1, 4}}, {4, {7, 6, 3, 5}}};
   GRMeshDesc meshd;
-  CreateCubeMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces);
+  CreateFaceMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces);
   Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::NAVY);
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
