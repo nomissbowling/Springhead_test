@@ -38,6 +38,7 @@ GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.2f, 0.2f, 0.2f, 1.0f), // specular
   Vec4f(0.5f, 0.5f, 0.5f, 1.0f), // emissive
   10.0); // power
+GRFrameDesc frm_desc = GRFrameDesc(); // common // .transform = Affinef();
 
 void DispMeshDesc(GRMeshDesc &meshd)
 {
@@ -185,8 +186,8 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
   }
 }
 
-void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so, GRFrameDesc &frmd,
-  GRMeshDesc &meshd, GRMaterialDesc &matd)
+void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
+  GRMeshDesc &meshd, GRMaterialDesc &matd, GRFrameDesc &frmd=frm_desc)
 {
   GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
 #if 0
@@ -336,9 +337,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_PIN;
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, cvxs[0], frmd, meshd, matd);
+  BindSolidFrame(fwSdk, cvxs[0], meshd, matd);
   return cvxs[0];
 }
 
@@ -397,9 +396,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_BALL;
 #endif
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, so, frmd, meshd, matd);
+  BindSolidFrame(fwSdk, so, meshd, matd);
   return so;
 }
 
@@ -451,9 +448,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
 //  meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_PLANE;
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, soPlane, frmd, meshd, matd);
+  BindSolidFrame(fwSdk, soPlane, meshd, matd);
   return soPlane;
 }
 
@@ -606,9 +601,7 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_TETRA;
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, cvx, frmd, meshd, matd);
+  BindSolidFrame(fwSdk, cvx, meshd, matd);
   return cvx;
 }
 
@@ -655,9 +648,7 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_CUBE;
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, cvx, frmd, meshd, matd);
+  BindSolidFrame(fwSdk, cvx, meshd, matd);
   return cvx;
 }
 
@@ -701,9 +692,7 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_BALL;
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  BindSolidFrame(fwSdk, soSphere, frmd, meshd, matd);
+  BindSolidFrame(fwSdk, soSphere, meshd, matd);
   return soSphere;
 }
 
