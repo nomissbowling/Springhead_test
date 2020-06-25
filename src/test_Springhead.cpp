@@ -185,6 +185,28 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float p[][2], int m, int t)
   }
 }
 
+void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so, GRFrameDesc &frmd,
+  GRMeshDesc &meshd, GRMaterialDesc &matd)
+{
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+#if 0
+  GRFrameIf *frm = grScene->CreateVisual(frmd, grScene->GetWorld())->Cast();
+#else
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
+#endif
+//  DispMeshDesc(meshd); // long time // SprGRMesh.h SprGRFrame.h SprCDShape.h
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
+//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
+//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
+//  grRender->SetMaterial(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(so);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync(); // can not set true ?
+}
+
 PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
 {
   FWSceneIf *fwScene = fwSdk->GetScene(0);
@@ -296,10 +318,6 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   phScene->SetContactMode(cvxs, l, PHSceneDesc::MODE_NONE); // parts of solids
 //  RotAllParts(cvxs, l, Quaterniond::Rot(Rad(-90.0), 'x'));
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
 #if 1
   CreateCylinderMesh(meshd, r, PNR, m, t);
@@ -316,20 +334,11 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
-//  DispMeshDesc(meshd); // long time
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_PIN;
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(cvxs[0]);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, cvxs[0], frmd, meshd, matd);
   return cvxs[0];
 }
 
@@ -368,19 +377,14 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   fwSdk->GetScene(0)->SetSolidMaterial(c, so);
   fwSdk->GetScene(0)->SetWireMaterial(c, so);
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
 #if 0
   GRSphereDesc meshd;
   meshd.radius = sd.radius;
   meshd.slices = 24; // 18; // 12; // lng default 16
   meshd.stacks = 18; // lat default 16
   //meshd.materialList = std::vector<int>{0}; // not a member
-  GRSphereIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
-//  matd.texname = TEX_BALL;
+//  matd.texname = TEX_BALL; // no effect ?
 #else
   GRMeshDesc meshd;
   CreateSphereMesh(meshd, r, rad, 24, 12); // slices=24, stacks=12
@@ -390,21 +394,12 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
-//  DispMeshDesc(meshd); // long time
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_BALL;
 #endif
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(so);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, so, frmd, meshd, matd);
   return so;
 }
 
@@ -428,10 +423,6 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   fwSdk->GetScene(0)->SetSolidMaterial(c, soPlane);
   fwSdk->GetScene(0)->SetWireMaterial(c, soPlane);
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
   CDBoxIf *box = shapePlane->Cast();
   Vec3f *vtxs = box->GetVertices();
@@ -458,19 +449,11 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   meshd.texCoords = std::vector<Vec2f>{
     {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
 //  meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_PLANE;
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(soPlane);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, soPlane, frmd, meshd, matd);
   return soPlane;
 }
 
@@ -606,15 +589,7 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 //  DispVertices(shapeCvx); // 4 - 4 - 3
   // 100 000 010, 100 010 001, 010 000 001, 000 100 001
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-#if 0
-  GRFrameIf *frm = grScene->CreateVisual(frmd, grScene->GetWorld())->Cast();
-#else
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
-#endif
-  GRMeshDesc meshd; // SprGRMesh.h SprGRFrame.h SprCDShape.h
+  GRMeshDesc meshd;
   meshd.vertices = vertices;
   meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
     {3, {0, 2, 1}}, {3, {0, 3, 2}}, {3, {0, 1, 3}}, {3, {1, 2, 3}}};
@@ -629,19 +604,11 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 #endif
   meshd.texCoords = std::vector<Vec2f>{{0, 0}, {0, 1}, {1, 0}, {1, 1}};
 //  meshd.materialList = std::vector<int>{0};
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_TETRA;
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(cvx);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, cvx, frmd, meshd, matd);
   return cvx;
 }
 
@@ -668,10 +635,6 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   // 110 011 111, 011 101 111, 011 000 001, 000 100 001,
   // 100 000 110, 011 001 101, 100 110 101, 011 110 010
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
   meshd.vertices = vertices;
   meshd.faces = std::vector<GRMeshFace>{ // {int nVertices=3|4, int indices[4]}
@@ -690,19 +653,11 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
   meshd.texCoords = std::vector<Vec2f>{
     {0, 0}, {0, 1}, {1, 0}, {1, 1}, {1, 1}, {1, 0}, {0, 1}, {0, 0}};
 //  meshd.materialList = std::vector<int>{0};
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_CUBE;
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(cvx);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, cvx, frmd, meshd, matd);
   return cvx;
 }
 
@@ -736,10 +691,6 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
   fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::SEAGREEN, soSphere);
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::SEAGREEN, soSphere);
 
-  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
-  GRFrameDesc frmd;
-  //frmd.transform = Affinef();
-  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast(); // parent = world
   GRMeshDesc meshd;
   CreateSphereMesh(meshd, 1.0f, sd.radius, 24, 12); // slices=24, stacks=12
   //meshd.normals = std::vector<Vec3f>{};
@@ -748,20 +699,11 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
-//  DispMeshDesc(meshd); // long time
-  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_BALL;
-  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
-  mesh->AddChildObject(mat); // 0 -> meshd.materialList[0]
-//  mesh->AddChildObject(mat); // 1 -> meshd.materialList[1]
-//  mesh->AddChildObject(mat); // 2 -> meshd.materialList[2]
-//  grRender->SetMaterial(mat);
-  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
-  fwObj->SetPHSolid(soSphere);
-  fwObj->SetGRFrame(frm);
-  fwSdk->GetScene(0)->Sync(); // can not set true ?
-
+  GRFrameDesc frmd;
+  //frmd.transform = Affinef();
+  BindSolidFrame(fwSdk, soSphere, frmd, meshd, matd);
   return soSphere;
 }
 
