@@ -595,10 +595,11 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 
 PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 {
-  float w = 1 - tan(15 * PI / 180); // float a = w * sqrt(2.0f);
+  float w = 1 - tan(15 * PI / 180);
+  float a = sqrt(2.0f) * w;
   float g = (1 + w) / 3;
-  float h = 2 * sqrt(3.0f) * w / 3;
-  float c = h / 3;
+  float h = 2 * sqrt(3.0f) * w / 3; // == sqrt(6.0f) * a / 3;
+  float c = sqrt(3.0f) * w / 6; // == h - sqrt(6.0f) * a / 4;
   std::vector<Vec3f> vertices = {
     {0, h - c, 0}, {w - g, -c, -g}, {1 - g, -c, 1 - g}, {-g, -c, w - g}};
   PHSolidDesc desc;
@@ -1144,7 +1145,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   FWSceneIf *fwScene = fwSdk->GetScene(0);
   GRFrameIf *frm = fwScene->GetGRScene()->GetWorld();
 */
-/*
+
+#if 0
   Quaterniond q = Quaterniond::Rot(Rad(45.0), Vec3d(1, 1, 1));
 //  Matrix3d rot;
 //  q.ToMatrix(rot);
@@ -1207,7 +1209,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   hjd.poseSocket.Pos() = Vec3d(1.0, 0.0, 0.0);
   hjd.posePlug.Pos() = Vec3d(-1.0, 0.0, 0.0);
   PHHingeJointIf *joint = phScene->CreateJoint(sol0, sol1, hjd)->Cast();
-*/
+#endif
+
   CreateLane(GetSdk(), Vec3d(0.0, -20.0, 0.0), PNS);
 }
 
