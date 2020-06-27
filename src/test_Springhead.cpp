@@ -39,6 +39,7 @@ GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.5f, 0.5f, 0.5f, 1.0f), // emissive
   10.0); // power
 GRFrameDesc frm_desc = GRFrameDesc(); // common // .transform = Affinef();
+enum class Axis : int {X=0, Y, Z};
 enum class Polygon : int {Triangle=0, Square, Pentagon, Hexagon};
 
 void DispMeshDesc(GRMeshDesc &meshd)
@@ -111,8 +112,18 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
+Vec3f AxisVert3f(float i, float j, float k, Axis ax=Axis::Y)
+{
+  switch(ax){
+  case Axis::X: return Vec3f(j, k, i);
+  case Axis::Y: return Vec3f(i, j, k);
+  case Axis::Z: return Vec3f(k, i, j);
+  default: return Vec3f(i, j, k); // Y
+  }
+}
+
 void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
-  float p[][2], int m, int t)
+  float p[][2], int m, int t, Axis ax=Axis::Y)
 {
   meshd.vertices = std::vector<Vec3f>((m + 2) * (t + 1) - 2);
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
@@ -122,7 +133,7 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
       float p0 = p[m - j - 1][0] * r, p1 = p[m - j - 1][1] * r / 2.0f;
       float th = 2.0f * PI * k / t;
       int f = (j + 1) * (t + 1) + k - 1;
-      meshd.vertices[f] = Vec3f(p1 * sin(th), p0, p1 * cos(th));
+      meshd.vertices[f] = AxisVert3f(p1 * sin(th), p0, p1 * cos(th), ax);
       meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - (p0-a) / ((b-a) * r));
       if(!k){
         int g = (j + 1) * (t + 1) + t - 1;
@@ -134,12 +145,12 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
         meshd.faces[(j + 1) * t * 2 + k] = GRMeshFace{3, {f+1+t+1, f+t+1, f}};
       }
       if(!j){
-        meshd.vertices[k] = Vec3f(0.0f, a * r, 0.0f);
+        meshd.vertices[k] = AxisVert3f(0.0f, a * r, 0.0f, ax);
         meshd.texCoords[k] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 1.0f);
         meshd.faces[k] = GRMeshFace{3, {k, f+1, f}};
       }else if(j == m - 1){
         int h = (m + 1) * (t + 1) + k - 1;
-        meshd.vertices[h] = Vec3f(0.0f, b * r, 0.0f);
+        meshd.vertices[h] = AxisVert3f(0.0f, b * r, 0.0f, ax);
         meshd.texCoords[h] = Vec2f((2 * (t - k) - 1) / (2.0f * t), 0.0f);
         meshd.faces[j * t * 2 + t + k] = GRMeshFace{3, {h, f, f+1}};
       }
@@ -147,7 +158,8 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
   }
 }
 
-void CreateSphereMesh(GRMeshDesc &meshd, float r, float radius, int sl, int st)
+void CreateSphereMesh(GRMeshDesc &meshd, float r, float radius, int sl, int st,
+  Axis ax=Axis::Z)
 {
   int t = sl;
   int m = st - 1;
@@ -158,7 +170,7 @@ void CreateSphereMesh(GRMeshDesc &meshd, float r, float radius, int sl, int st)
     q[m - j - 1][0] = radius * (1 - cos(ph)) - c;
     q[m - j - 1][1] = radius * sin(ph) * 2.0f;
   }
-  CreateCylinderMesh(meshd, r, q[m - 1][0], q[0][0], q, m, t);
+  CreateCylinderMesh(meshd, r, q[m - 1][0], q[0][0], q, m, t, ax);
   delete[] q;
 }
 
@@ -700,7 +712,7 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
-  matd.texname = TEX_BALL;
+  matd.texname = TEX_SPHERE;
   BindSolidFrame(fwSdk, soSphere, meshd, matd);
   return soSphere;
 }

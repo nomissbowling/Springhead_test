@@ -18,8 +18,9 @@
 #define RES_DIR "C:\\prj\\Springhead_test\\res\\"
 #define TEX_LANE RES_DIR"lane_256x256.png"
 #define TEX_PIN RES_DIR"pin_256x256.png"
-#define TEX_BALL RES_DIR"Globe_Lambert_256x81.png"
+#define TEX_BALL RES_DIR"ball_256x256.png"
 #define TEX_PLANE RES_DIR"plane_256x256.png"
+#define TEX_SPHERE RES_DIR"Globe_Lambert_256x81.png"
 #define TEX_CUBE RES_DIR"cube_256x256.png"
 #define TEX_TETRA RES_DIR"tetra_256x256.png"
 
