@@ -435,7 +435,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
 //  matd.texname = TEX_BALL; // no effect ?
 #else
   GRMeshDesc meshd;
-  CreateSphereMesh(meshd, r, rad, 24, 12); // slices=24, stacks=12
+  CreateSphereMesh(meshd, r, rad, 24, 18); // slices=24, stacks=18(12)
   //meshd.normals = std::vector<Vec3f>{};
   //meshd.faceNormals = std::vector<GRMeshFace>{};
   Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
@@ -692,7 +692,7 @@ PHSolidIf *CreateSphere(FWSdkIf *fwSdk)
   fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::SEAGREEN, soSphere);
 
   GRMeshDesc meshd;
-  CreateSphereMesh(meshd, 1.0f, sd.radius, 24, 12); // slices=24, stacks=12
+  CreateSphereMesh(meshd, 1.0f, sd.radius, 24, 18); // slices=24, stacks=18(12)
   //meshd.normals = std::vector<Vec3f>{};
   //meshd.faceNormals = std::vector<GRMeshFace>{};
   Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::SEAGREEN);
