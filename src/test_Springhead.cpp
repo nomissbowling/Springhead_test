@@ -121,7 +121,7 @@ void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
       float p0 = p[m - j - 1][0] * r, p1 = p[m - j - 1][1] * r / 2.0f;
       float th = 2.0f * PI * k / t;
       int f = (j + 1) * (t + 1) + k - 1;
-      meshd.vertices[f] = Vec3f(p1 * cos(th), p0, p1 * sin(th));
+      meshd.vertices[f] = Vec3f(p1 * sin(th), p0, p1 * cos(th));
       meshd.texCoords[f] = Vec2f((t - k) / (float)t, 1 - (p0-a) / ((b-a) * r));
       if(!k){
         int g = (j + 1) * (t + 1) + t - 1;
