@@ -178,15 +178,14 @@ void CreateFaceMesh(GRMeshDesc &meshd, float r, Vec3f sz,
   meshd.faces = std::vector<GRMeshFace>(nf); // {int nVertices=3|4, int indices[4]}
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
   for(int i = 0; i < nf; ++i){
-    float row = (int)(3 - (i / 4)) / 4.0f, col = (int)(i % 4) / 4.0f;
+    Vec2f cr = Vec2f(i % 4, 3 - (i / 4)); // col, row
     GRMeshFace g = GRMeshFace{nv, {0, 0, 0, 0}};
     GRMeshFace &f = faces[i];
     for(int j = 0; j < nv; ++j){
       g.indices[j] = i * nv + j;
       meshd.vertices[g.indices[j]] = vertices[f.indices[j]];
       Vec2f coord = coords[static_cast<int>(poly)][j];
-      meshd.texCoords[g.indices[j]] = mode ?
-        coord : Vec2f(col + coord.x/4, row + coord.y/4);
+      meshd.texCoords[g.indices[j]] = mode ? coord : (coord + cr) / 4.0f;
     }
     meshd.faces[i] = g;
   }
