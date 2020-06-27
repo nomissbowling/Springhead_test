@@ -39,6 +39,7 @@ GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.5f, 0.5f, 0.5f, 1.0f), // emissive
   10.0); // power
 GRFrameDesc frm_desc = GRFrameDesc(); // common // .transform = Affinef();
+enum class Polygon : int {Triangle=0, Square, Pentagon, Hexagon};
 
 void DispMeshDesc(GRMeshDesc &meshd)
 {
@@ -162,22 +163,30 @@ void CreateSphereMesh(GRMeshDesc &meshd, float r, float radius, int sl, int st)
 }
 
 void CreateFaceMesh(GRMeshDesc &meshd, float r, Vec3f sz,
-  std::vector<Vec3f> &vertices, std::vector<GRMeshFace> &faces)
+  std::vector<Vec3f> &vertices, std::vector<GRMeshFace> &faces,
+  bool mode=false, Polygon poly=Polygon::Triangle)
 {
-  std::vector<Vec2f> coords = std::vector<Vec2f>{
-    {1, 0}, {1, 1}, {0, 1}, {0, 0}}; // 4 or 3
+  std::vector<Vec2f> coords[] = {
+    {{0.5f, 0.056f}, {1, 0.922f}, {0, 0.922f}}, // Triangle
+    {{1, 0}, {1, 1}, {0, 1}, {0, 0}}, // Square
+    {{0.5f, 0.0489f}, {1, 0.4122f}, {0.8090f, 1}, {0.1909f, 1}, {0, 0.4122f}},
+    {{0.5f, 0}, {0.9330f, 0.25f}, {0.9330f, 0.75f},
+     {0.5f, 1}, {0.0669f, 0.75f}, {0.0669f, 0.25f}}};
   int nv = faces[0].nVertices; // face: number of vertices = 4 or 3
   int nf = (int)faces.size(); // cube: number of faces = 6 or 4 etc
   meshd.vertices = std::vector<Vec3f>(nv * nf);
   meshd.faces = std::vector<GRMeshFace>(nf); // {int nVertices=3|4, int indices[4]}
   meshd.texCoords = std::vector<Vec2f>(meshd.vertices.size());
   for(int i = 0; i < nf; ++i){
+    float row = (int)(3 - (i / 4)) / 4.0f, col = (int)(i % 4) / 4.0f;
     GRMeshFace g = GRMeshFace{nv, {0, 0, 0, 0}};
     GRMeshFace &f = faces[i];
     for(int j = 0; j < nv; ++j){
       g.indices[j] = i * nv + j;
       meshd.vertices[g.indices[j]] = vertices[f.indices[j]];
-      meshd.texCoords[g.indices[j]] = coords[j];
+      Vec2f coord = coords[static_cast<int>(poly)][j];
+      meshd.texCoords[g.indices[j]] = mode ?
+        coord : Vec2f(col + coord.x/4, row + coord.y/4);
     }
     meshd.faces[i] = g;
   }
@@ -188,7 +197,8 @@ void CreateFaceMesh(GRMeshDesc &meshd, float r, Vec3f sz,
   //meshd.materialList = std::vector<int>{0}; // abort XCastPtr SprObject.h:43
 }
 
-void CreateBoxMesh(GRMeshDesc &meshd, float r, Vec3f sz, CDShapeIf *shape)
+void CreateBoxMesh(GRMeshDesc &meshd, float r, Vec3f sz, CDShapeIf *shape,
+  bool mode=false)
 {
   CDBoxIf *box = shape->Cast();
   Vec3f *vtxs = box->GetVertices(); // not found box->GetVtxCount()
@@ -202,7 +212,7 @@ void CreateBoxMesh(GRMeshDesc &meshd, float r, Vec3f sz, CDShapeIf *shape)
     // (-x  y -z) (-x  y  z) (-x -y  z) (-x -y -z)
     {4, {7, 4, 0, 3}}, {4, {7, 6, 5, 4}}, {4, {7, 3, 2, 6}},
     {4, {1, 0, 4, 5}}, {4, {1, 2, 3, 0}}, {4, {1, 5, 6, 2}}};
-  CreateFaceMesh(meshd, r, sz, vertices, faces);
+  CreateFaceMesh(meshd, r, sz, vertices, faces, mode, Polygon::Square);
 }
 
 void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
@@ -227,11 +237,12 @@ void BindSolidFrame(FWSdkIf *fwSdk, PHSolidIf *so,
   fwSdk->GetScene(0)->Sync(); // can not set true ?
 }
 
-void BindSolidBox(FWSdkIf *fwSdk, PHSolidIf *so, float r, Vec3f sz, int c)
+void BindSolidBox(FWSdkIf *fwSdk, PHSolidIf *so, float r, Vec3f sz, int c,
+  bool mode=false, UTString texname=TEX_CUBE)
 {
   CDShapeIf *shape = so->GetShape(0);
   GRMeshDesc meshd;
-  CreateBoxMesh(meshd, r, sz, shape);
+  CreateBoxMesh(meshd, r, sz, shape, mode);
   Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
@@ -242,7 +253,7 @@ void BindSolidBox(FWSdkIf *fwSdk, PHSolidIf *so, float r, Vec3f sz, int c)
 #endif
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
-  matd.texname = TEX_PLANE;
+  matd.texname = texname;
   BindSolidFrame(fwSdk, so, meshd, matd);
 }
 
@@ -440,7 +451,7 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r)
 }
 
 PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
-  bool dyn=false)
+  UTString texname=TEX_PLANE, bool dyn=false)
 {
   PHSolidDesc desc;
   desc.mass = 1000.0;
@@ -459,7 +470,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   fwSdk->GetScene(0)->SetSolidMaterial(c, soPlane);
   fwSdk->GetScene(0)->SetWireMaterial(c, soPlane);
 
-  BindSolidBox(fwSdk, soPlane, r, sz, c);
+  BindSolidBox(fwSdk, soPlane, r, sz, c, true, texname);
   return soPlane;
 }
 
@@ -513,7 +524,7 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   PHSolidIf *soAppr = CreatePlane(fwSdk, GRRenderBaseIf::SALMON,
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
   PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
-    pos, Vec3f(lnd, lnh, lnw), r);
+    pos, Vec3f(lnd, lnh, lnw), r, TEX_LANE);
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::GOLD,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
 /*
@@ -636,7 +647,8 @@ PHSolidIf *CreateConvexMeshCube(FWSdkIf *fwSdk)
     {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
     {4, {7, 4, 2, 6}}, {4, {7, 5, 1, 4}}, {4, {7, 6, 3, 5}}};
   GRMeshDesc meshd;
-  CreateFaceMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces);
+  CreateFaceMesh(meshd, 1.0f, Vec3f(1.0f, 1.0f, 1.0f), vertices, faces,
+    false, Polygon::Square);
   Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::NAVY);
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;

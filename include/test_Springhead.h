@@ -16,6 +16,7 @@
 #define WIN_DEBUG WIN_TITLE"_Debug"
 
 #define RES_DIR "C:\\prj\\Springhead_test\\res\\"
+#define TEX_LANE RES_DIR"lane_256x256.png"
 #define TEX_PIN RES_DIR"pin_256x256.png"
 #define TEX_BALL RES_DIR"Globe_Lambert_256x81.png"
 #define TEX_PLANE RES_DIR"plane_256x256.png"
