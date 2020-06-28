@@ -32,6 +32,15 @@ float PNR[][2] = {
 int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
 float BALL_R = 8.5f / 2.0f;
 PHSolidIf *soBall_ref = NULL;
+const int LANE_FEETS = 60;
+const int OIL_GRID_COLS = 39; // late
+//const int OIL_GRID_COLS = 13; // skip for VS (rows=LANE_FEETS)
+//const int OIL_GRID_ROWS = LANE_FEETS * 10; // long long time (not start...)
+//const int OIL_GRID_ROWS = LANE_FEETS; // start 90sec but VS hung up (cols=39)
+const int OIL_GRID_ROWS = LANE_FEETS / 10; // start ok but too late
+PHSolidIf *soGrid[OIL_GRID_ROWS][OIL_GRID_COLS];
+const int GRID_CENTER_COL = (OIL_GRID_COLS + 1) / 2 - 1;
+const int GRID_CENTER_ROW = OIL_GRID_ROWS / 2 - 1;
 GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
   Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
@@ -576,6 +585,33 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
   return so;
 }
 
+void LaneOil(FWSdkIf *fwSdk)
+{
+  for(int row = 0; row < OIL_GRID_ROWS; ++row){
+    for(int col = 0; col < OIL_GRID_COLS; ++col){
+      PHSolidIf *so = soGrid[row][col];
+    }
+  }
+}
+
+PHSolidIf *CreateLaneGrid(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r)
+{
+  float w = sz.z / OIL_GRID_COLS;
+  float h = sz.x / OIL_GRID_ROWS;
+fprintf(stdout, "CreateLaneGrid: in\n"); fflush(stdout);
+  for(int row = 0; row < OIL_GRID_ROWS; ++row){
+fprintf(stdout, " %3d", row); fflush(stdout);
+    for(int col = 0; col < OIL_GRID_COLS; ++col){
+      double x = h * (row - (GRID_CENTER_ROW + 0.5));
+      double z = w * (col - GRID_CENTER_COL);
+      soGrid[row][col] = CreatePlane(fwSdk, c,
+        pos + Vec3d(x, 0, z), Vec3f(h, sz.y, w), r, TEX_LANE);
+    }
+  }
+fprintf(stdout, "\nCreateLaneGrid: out\n"); fflush(stdout);
+  return soGrid[GRID_CENTER_ROW][GRID_CENTER_COL];
+}
+
 PHSolidIf *CreateLane(FWSdkIf *fwSdk, Vec3d pos, float r)
 {
 /*
@@ -609,8 +645,9 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     Vec3d(pos.x + lnd / 2.0f + lsh, pos.y, pos.z), Vec3f(lst, lnh, lnw), r);
   PHSolidIf *soAppr = CreatePlane(fwSdk, GRRenderBaseIf::SALMON,
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
-  PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
-    pos, Vec3f(lnd, lnh, lnw), r, TEX_LANE);
+  PHSolidIf *soLane = CreateLaneGrid(fwSdk, GRRenderBaseIf::LIGHTSALMON,
+    pos, Vec3f(lnd, lnh, lnw), r);
+  LaneOil(fwSdk);
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::GOLD,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
 /*
