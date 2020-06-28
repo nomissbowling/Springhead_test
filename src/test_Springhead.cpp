@@ -655,12 +655,20 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.5 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
-// hooking point 40ft ?
+/* // hooking point 40ft ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
     pos + Vec3d(lnd / 6.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 3.0 * -19.3 * r / 4.8));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
+*/
+// straight and AR AT (-Ix, 0, -Iz)
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 16.0f), BALL_R, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 0.0));
+//  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0)); // straight 10 pin
+  soBall->SetAngularVelocity(Vec3d(-20.0, 0.0, -50.0));
 
   soBall_ref = soBall;
   return soLane;
@@ -1043,10 +1051,14 @@ void MyApp::Keyboard(int key, int x, int y)
     DSTR << "convexmeshpin" << std::endl;
     CreateConvexMeshPin(GetSdk(), GRRenderBaseIf::GOLD, Vec3d(0, 5, 0), PNS);
     break;
-  case ',':
+  case ',': {
     DSTR << "spheremeshball" << std::endl;
-    CreateBall(GetSdk(), GRRenderBaseIf::GREEN, Vec3d(0, 6, 0), BALL_R, PNS);
-    break;
+    PHSolidIf *soBall = CreateBall(GetSdk(), GRRenderBaseIf::GREEN,
+      Vec3d(0, 6, 0), BALL_R, PNS);
+    soBall->SetMass(0.85);
+    soBall->SetVelocity(Vec3d(0.0, 0.0, 0.0));
+    soBall->SetAngularVelocity(Vec3d(0.0, 0.0, -100.0));
+  } break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
     CreateConvexMeshCube(GetSdk());
