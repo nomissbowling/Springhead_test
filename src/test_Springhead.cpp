@@ -6,11 +6,12 @@
 
 #include <test_Springhead.h>
 
-bool DBG = false; // true works without camera light etc
+const bool DBG = false; // true works without camera light etc
 const int W = 6; // number of windows
 int WinID[W]; // ID
-float PI = 3.14159265358979323846264338327950288419716939937510f;
-float PNS = 0.2f; // scale
+const float PI = 3.14159265358979323846264338327950288419716939937510f;
+const float FEETINCH = 12.0f;
+const float PNS = 0.2f; // scale
 float PNR[][2] = {
   {    15.0f, 0.800f}, // 0.000f}, //
   {14+1/2.0f, 1.870f}, //
@@ -29,18 +30,17 @@ float PNR[][2] = {
   { 2+1/4.0f, 3.906f},
   {   3/4.0f, 2.828f},
   {     0.0f, 2.250f}};
-int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
-float BALL_R = 8.5f / 2.0f;
+const int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+const float BALL_R = 8.5f / 2.0f;
 PHSolidIf *soBall_ref = NULL;
-const int LANE_FEETS = 60;
-const int OIL_GRID_COLS = 39; // late
-//const int OIL_GRID_COLS = 13; // skip for VS (rows=LANE_FEETS)
-//const int OIL_GRID_ROWS = LANE_FEETS * 10; // long long time (not start...)
-//const int OIL_GRID_ROWS = LANE_FEETS; // start 90sec but VS hung up (cols=39)
-const int OIL_GRID_ROWS = LANE_FEETS / 10; // start ok but too late
-PHSolidIf *soGrid[OIL_GRID_ROWS][OIL_GRID_COLS];
-const int GRID_CENTER_COL = (OIL_GRID_COLS + 1) / 2 - 1;
-const int GRID_CENTER_ROW = OIL_GRID_ROWS / 2 - 1;
+PHSolidIf *soLane_ref = NULL;
+const float LANE_HEIGHT = 1.0f; // inch
+const float LANE_WIDTH = 41.5f; // inch
+const int LANE_FEET = 60; // feet
+const float LANE_DEPTH = LANE_FEET * FEETINCH; // inch
+const int OIL_GRID_COLS = 39;
+const int OIL_GRID_ROWS = LANE_FEET * 10; // step 0.1 feet
+float OilGrid[OIL_GRID_ROWS][OIL_GRID_COLS];
 GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
   Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
@@ -585,31 +585,31 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
   return so;
 }
 
-void LaneOil(FWSdkIf *fwSdk)
+void CheckOil()
 {
-  for(int row = 0; row < OIL_GRID_ROWS; ++row){
-    for(int col = 0; col < OIL_GRID_COLS; ++col){
-      PHSolidIf *so = soGrid[row][col];
-    }
+  float w = LANE_WIDTH / OIL_GRID_COLS;
+  float h = LANE_DEPTH / OIL_GRID_ROWS;
+  Posed po = soBall_ref->GetPose();
+  Vec3d p = po.Pos();
+  double d = (p.x / FEETINCH) / PNS + LANE_FEET / 2;
+  fprintf(stdout, "%7.3f\n", d);
+  CDBoxIf *b = soLane_ref->GetShape(0)->Cast();
+  if(d < 40.0f){ // oil
+    b->SetStaticFriction(0.5f); // mu0 (default 0.5f)
+    b->SetDynamicFriction(0.0f); // mu (default 0.2f)
+  }else{ // no oil
+    b->SetStaticFriction(0.5f); // mu0 (default 0.5f)
+    b->SetDynamicFriction(20.0f); // mu (default 0.2f)
   }
 }
 
-PHSolidIf *CreateLaneGrid(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r)
+void LaneOil()
 {
-  float w = sz.z / OIL_GRID_COLS;
-  float h = sz.x / OIL_GRID_ROWS;
-fprintf(stdout, "CreateLaneGrid: in\n"); fflush(stdout);
   for(int row = 0; row < OIL_GRID_ROWS; ++row){
-fprintf(stdout, " %3d", row); fflush(stdout);
     for(int col = 0; col < OIL_GRID_COLS; ++col){
-      double x = h * (row - (GRID_CENTER_ROW + 0.5));
-      double z = w * (col - GRID_CENTER_COL);
-      soGrid[row][col] = CreatePlane(fwSdk, c,
-        pos + Vec3d(x, 0, z), Vec3f(h, sz.y, w), r, TEX_LANE);
+      OilGrid[row][col] = 0.0f;
     }
   }
-fprintf(stdout, "\nCreateLaneGrid: out\n"); fflush(stdout);
-  return soGrid[GRID_CENTER_ROW][GRID_CENTER_COL];
 }
 
 PHSolidIf *CreateLane(FWSdkIf *fwSdk, Vec3d pos, float r)
@@ -630,11 +630,10 @@ lane (0, 0, 0) lnd lnw
 approach (-apd, 0, 0) apd lnw+gtw*2
 ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 */
-  float feetinch = 12.0f;
-  float apd = 15.35f * feetinch;
-  float psd = 2.6f * feetinch, lst = 2.849f * feetinch, pdr = 7.67f * feetinch;
+  float apd = 15.35f * FEETINCH;
+  float psd = 2.6f * FEETINCH, lst = 2.849f * FEETINCH, pdr = 7.67f * FEETINCH;
   float aph = apd / 2.0f, lsh = lst / 2.0f;
-  float lnh = 1.0f, lnw = 41.5f, lnd = 60.0f * feetinch;
+  float lnh = LANE_HEIGHT, lnw = LANE_WIDTH, lnd = LANE_DEPTH;
   Vec3f gtsi = Vec3f(lnd + lst, lnh, (BALL_R * 2.0f + 0.75f) / 2.0f);
   float gtp = lnw / 2.0f + gtsi.z;
   CreateHalfPipe(fwSdk, GRRenderBaseIf::LIMEGREEN,
@@ -645,9 +644,10 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
     Vec3d(pos.x + lnd / 2.0f + lsh, pos.y, pos.z), Vec3f(lst, lnh, lnw), r);
   PHSolidIf *soAppr = CreatePlane(fwSdk, GRRenderBaseIf::SALMON,
     Vec3d(pos.x - lnd / 2.0f - aph, pos.y, pos.z), Vec3f(apd, lnh, lnw), r);
-  PHSolidIf *soLane = CreateLaneGrid(fwSdk, GRRenderBaseIf::LIGHTSALMON,
-    pos, Vec3f(lnd, lnh, lnw), r);
-  LaneOil(fwSdk);
+  PHSolidIf *soLane = CreatePlane(fwSdk, GRRenderBaseIf::LIGHTSALMON,
+    pos, Vec3f(lnd, lnh, lnw), r, TEX_LANE);
+  soLane_ref = soLane;
+  LaneOil();
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::GOLD,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
 /*
@@ -955,6 +955,7 @@ void MyApp::TimerFunc(int id)
 {
   ++tick;
 //  FWApp::TimerFunc(id); // skip default
+  CheckOil(); // each times set lane mu before call Step()
   GetSdk()->Step();
 //  for(int i = 0; i < W; ++i) GetWin(i)->GetScene()->Step(); // speed x W
   for(int i = 0; i < W; ++i){
@@ -1144,7 +1145,7 @@ void MyApp::InitCameraView()
 //tb->SetDistance(30.0f);
 */
 
-  float lnd = 60.0f * 12.0f * PNS;
+  float lnd = LANE_DEPTH * PNS;
   MyCameraDescPart cdp[] = {
     {-lnd / 4.0f, 0.0f, 0.0f, -PI / 2.0f, 0.0f, lnd * 3.0f / 10.0f},
     {lnd / 2.0f, 0.0f, 0.0f, -PI / 2.0f, PI / 36.0f, 20.0f},
