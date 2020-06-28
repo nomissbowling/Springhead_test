@@ -112,13 +112,13 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
-Vec3f AxisVert3f(float i, float j, float k, Axis ax=Axis::Y)
+Vec3f AxisVert3f(float i, float j, float k, Axis ax=Axis::Z)
 {
   switch(ax){
   case Axis::X: return Vec3f(j, k, i);
   case Axis::Y: return Vec3f(i, j, k);
-  case Axis::Z: return Vec3f(k, i, j);
-  default: return Vec3f(i, j, k); // Y
+  case Axis::Z: // through down
+  default: return Vec3f(k, i, j); // same as Z
   }
 }
 
@@ -448,12 +448,17 @@ PHSolidIf *CreateBall(FWSdkIf *fwSdk, int c, Vec3d pos, float rad, float r,
 //  matd.texname = TEX_BALL; // no effect ?
 #else
   GRMeshDesc meshd;
-  CreateSphereMesh(meshd, r, rad, 24, 18, ax); // slices=24, stacks=18(12)
+  const int sl = 24, st = 18; // slices=24, stacks=18(12)
+  CreateSphereMesh(meshd, r, rad, sl, st, ax);
   //meshd.normals = std::vector<Vec3f>{};
   //meshd.faceNormals = std::vector<GRMeshFace>{};
   Vec4f col = fwSdk->GetRender()->GetReservedColor(c);
   meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
   for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+  col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::YELLOW);
+  for(int i = sl; i < meshd.vertices.size() - sl; i += (sl + 1)){
+    for(int j = 0; j <= 4; ++j) meshd.colors[i + sl * j / 4] = col; // use '<='
+  }
 //  meshd.materialList = std::vector<int>{0};
   GRMaterialDesc matd = mat_desc;
   matd.texname = TEX_BALL;
@@ -971,8 +976,7 @@ void MyApp::Keyboard(int key, int x, int y)
     break;
   case ',':
     DSTR << "spheremeshball" << std::endl;
-    CreateBall(GetSdk(), GRRenderBaseIf::GREEN, Vec3d(0, 6, 0), BALL_R, PNS,
-      Axis::Y);
+    CreateBall(GetSdk(), GRRenderBaseIf::GREEN, Vec3d(0, 6, 0), BALL_R, PNS);
     break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
