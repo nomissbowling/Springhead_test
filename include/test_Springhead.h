@@ -23,6 +23,7 @@
 #define TEX_SPHERE RES_DIR"Globe_Lambert_256x81.png"
 #define TEX_CUBE RES_DIR"cube_256x256.png"
 #define TEX_TETRA RES_DIR"tetra_256x256.png"
+#define TEX_LBRBRTLT RES_DIR"lbrbrtlt_256x256.png"
 
 using namespace Spr;
 

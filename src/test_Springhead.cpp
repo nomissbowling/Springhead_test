@@ -112,14 +112,83 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
+void CreatePanel(FWSdkIf *fwSdk, Vec3f p, float r) // only for texture TEST
+{
+  std::vector<Vec3f> vertices = {
+    {0, 0, 0}, {r, 0, 0}, {0, r, 0}, {0, 0, r},
+    {r, r, 0}, {r, 0, r}, {0, r, r}, {r, r, r}};
+  PHSolidDesc desc;
+  desc.mass = 1000.0;
+  desc.inertia *= 0.033;
+  PHSolidIf *cvx = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
+  cvx->SetDynamical(false);
+  cvx->SetMass(1000.0);
+  CDConvexMeshDesc cmd;
+  cmd.vertices = vertices;
+  CDShapeIf *shapeCvx = fwSdk->GetPHSdk()->CreateShape(cmd);
+  cvx->AddShape(shapeCvx);
+  cvx->SetCenterPosition(p * r);
+  fwSdk->GetScene(0)->SetSolidMaterial(GRRenderBaseIf::GRAY, cvx);
+  fwSdk->GetScene(0)->SetWireMaterial(GRRenderBaseIf::GRAY, cvx);
+//  DispVertices(shapeCvx); // 8 - 12 - 3
+
+  std::vector<GRMeshFace> faces = std::vector<GRMeshFace>{
+    {4, {0, 2, 4, 1}}, {4, {0, 3, 6, 2}}, {4, {0, 1, 5, 3}},
+    {4, {7, 4, 2, 6}}, {4, {7, 5, 1, 4}}, {4, {7, 6, 3, 5}}};
+  GRMeshDesc meshd;
+  meshd.vertices = vertices;
+  meshd.faces = faces;
+  meshd.texCoords = {
+  //  0       1       2               4                     {0, 2, 4, 1} cw  YX
+  //  0               2       3                       6     {0, 3, 6, 2} ccw ZY
+  //  0       1               3               5             {0, 1, 5, 3} --- XZ
+  //                                                        {7, 4, 2, 6} ---
+  //                                                        {7, 5, 1, 4} ccw
+  //                                                        [7, 6, 3, 5} cw
+    {1, 1}, {0, 1}, {1, 0}, {0, 1}, {0, 0}, {1, 1}, {0, 0}, {1, 0}}; // Rot PI
+  //{0, 0}, {1, 0}, {0, 1}, {1, 0}, {1, 1}, {0, 0}, {1, 1}, {0, 1}}; // not Rot
+  //meshd.normals = std::vector<Vec3f>{};
+  //meshd.faceNormals = std::vector<GRMeshFace>{};
+  Vec4f col = fwSdk->GetRender()->GetReservedColor(GRRenderBaseIf::GRAY);
+  meshd.colors = std::vector<Vec4f>(meshd.vertices.size());
+  for(int i = 0; i < meshd.vertices.size(); ++i) meshd.colors[i] = col;
+//  meshd.materialList = std::vector<int>{0};
+  GRMaterialDesc matd = mat_desc;
+  matd.texname = TEX_LBRBRTLT;
+
+  GRSceneIf *grScene = fwSdk->GetScene(0)->GetGRScene();
+  GRFrameDesc frmd = frm_desc;
+//frmd.transform = Affinef::Unit().Scale(r,r,r).Rot(0, 'y').Trn(p.x,p.y,p.z);
+  GRFrameIf *frm = grScene->CreateVisual(frmd)->Cast();
+  GRMeshIf *mesh = grScene->CreateVisual(meshd, frm)->Cast();
+  GRMaterialIf *mat = grScene->CreateVisual(matd, frm)->Cast();
+  mesh->AddChildObject(mat);
+  FWObjectIf *fwObj = fwSdk->GetScene(0)->CreateFWObject();
+  fwObj->SetPHSolid(cvx);
+  fwObj->SetGRFrame(frm);
+  fwSdk->GetScene(0)->Sync();
+}
+
 Vec3f AxisVert3f(float i, float j, float k, Axis ax=Axis::Z)
 {
+#if 0 // BUG ? reverse texture ? or cw-ccw reverse ?
   switch(ax){
   case Axis::X: return Vec3f(j, k, i);
   case Axis::Y: return Vec3f(i, j, k);
   case Axis::Z: // through down
   default: return Vec3f(k, i, j); // same as Z
   }
+#else
+// to fix ball (sphere) or pin (cylinder) texture: MUST test with CreatePanel
+// order (i <-> k to reverse East-West) or (-j to reverse North-South)
+// MUST check later (may be right but double reversed vertices and texCoords ?)
+  switch(ax){
+  case Axis::X: return Vec3f(j, i, k);
+  case Axis::Y: return Vec3f(k, j, i);
+  case Axis::Z: // through down
+  default: return Vec3f(i, k, j); // same as Z
+  }
+#endif
 }
 
 void CreateCylinderMesh(GRMeshDesc &meshd, float r, float a, float b,
@@ -1150,6 +1219,8 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   FWSceneIf *fwScene = fwSdk->GetScene(0);
   GRFrameIf *frm = fwScene->GetGRScene()->GetWorld();
 */
+
+//  CreatePanel(fwSdk, Vec3f(0, 0, 0), 3.0f); // only for texture TEST
 
 #if 0
   Quaterniond q = Quaterniond::Rot(Rad(45.0), Vec3d(1, 1, 1));
