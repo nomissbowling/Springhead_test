@@ -592,8 +592,7 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
 
 void SetDynPins(bool mode)
 {
-  if(dynPins && mode) return;
-  if(!dynPins && !mode) return;
+  if(!dynPins == !mode) return;
   for(int j = 0; j < sizeof(soPins_ref) / sizeof(soPins_ref[0]); ++j)
     for(int i = 0; i < sizeof(soPins_ref[0]) / sizeof(soPins_ref[0][0]); ++i)
       soPins_ref[j][i]->SetDynamical(mode);
