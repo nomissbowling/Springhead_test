@@ -31,6 +31,7 @@ float PNR[][2] = {
   {   3/4.0f, 2.828f},
   {     0.0f, 2.250f}};
 const int PNI[][2] = {{0, 4}, {4, 9}, {9, 13}, {13, 16}};
+PHSolidIf *soPins_ref[10][sizeof(PNI) / sizeof(PNI[0])];
 const float BALL_R = 8.5f / 2.0f;
 PHSolidIf *soBall_ref = NULL;
 PHSolidIf *soLane_ref = NULL;
@@ -41,6 +42,7 @@ const float LANE_DEPTH = LANE_FEET * FEETINCH; // inch
 const int OIL_GRID_COLS = 39;
 const int OIL_GRID_ROWS = LANE_FEET * 10; // step 0.1 feet
 float OilGrid[OIL_GRID_ROWS][OIL_GRID_COLS];
+bool dynPins = true;
 GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
   Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
@@ -346,7 +348,8 @@ void BindSolidBox(FWSdkIf *fwSdk, PHSolidIf *so, float r, Vec3f sz, int c,
   BindSolidFrame(fwSdk, so, meshd, matd);
 }
 
-PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
+PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r,
+  int num=-1)
 {
   FWSceneIf *fwScene = fwSdk->GetScene(0);
   PHSceneIf *phScene = fwScene->GetPHScene();
@@ -381,6 +384,7 @@ PHSolidIf *CreateConvexMeshPin(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
     // desc.pose.Pos() = Vec3d(0, 0, 0); // relation from mass center ?
     // desc.pose.Ori() = Quaterniond::Rot(Rad(360.0), 'y');
     cvxs[i] = phScene->CreateSolid(desc);
+    if(num >= 0) soPins_ref[num][i] = cvxs[i];
     CDConvexMeshDesc cmd;
     cmd.vertices = vertices;
     cmd.material.density = 1.0;
@@ -492,9 +496,10 @@ PHSolidIf *CreatePinsTriangle(FWSdkIf *fwSdk, int c, Vec3d pos, float r)
   float pnp = 12.0f * r; // distance of each pin center point = 12 inch
   float pnq = pnp * sqrt(3.0f) / 2.0f;
   for(int k = 0, j = 0; j < 4; ++j)
-    for(int i = 0; ++k, i < j + 1; ++i)
+    for(int i = 0; i < j + 1; ++k, ++i)
       so = CreateConvexMeshPin(fwSdk, c,
-        pos * r + Vec3d(j * pnq, 0.0, i * pnp - j * pnp / 2.0), r);
+        pos * r + Vec3d(j * pnq, 0.0, i * pnp - j * pnp / 2.0), r, k);
+  dynPins = true;
   return so;
 }
 
@@ -585,12 +590,23 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
   return so;
 }
 
+void SetDynPins(bool mode)
+{
+  if(dynPins && mode) return;
+  if(!dynPins && !mode) return;
+  for(int j = 0; j < sizeof(soPins_ref) / sizeof(soPins_ref[0]); ++j)
+    for(int i = 0; i < sizeof(soPins_ref[0]) / sizeof(soPins_ref[0][0]); ++i)
+      soPins_ref[j][i]->SetDynamical(mode);
+  dynPins = mode;
+}
+
 void CheckOil()
 {
   Posed po = soBall_ref->GetPose();
   Vec3d p = po.Pos() / PNS;
   double dx = p.x / FEETINCH + LANE_FEET / 2;
   double dz = p.z + LANE_WIDTH / 2;
+  SetDynPins(dx >= 50.0f);
   float h = LANE_FEET / (float)OIL_GRID_ROWS;
   float w = LANE_WIDTH / (float)OIL_GRID_COLS;
   int ix = (int)(dx / h);
