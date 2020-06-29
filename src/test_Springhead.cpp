@@ -558,6 +558,7 @@ PHSolidIf *CreatePlane(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f sz, float r,
   desc.inertia *= 0.033;
   PHSolidIf *soPlane = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   soPlane->SetDynamical(dyn);
+  soPlane->SetGravity(false);
   soPlane->SetMass(1000.0);
   CDBoxDesc bd;
   bd.boxsize = sz * r;
@@ -729,7 +730,7 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 0.0));
 //  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0)); // straight 10 pin
-  soBall->SetAngularVelocity(Vec3d(-20.0, 0.0, -50.0));
+  soBall->SetAngularVelocity(Vec3d(-20.0, 0.0, -10.0));
 
   soBall_ref = soBall;
   return soLane;
