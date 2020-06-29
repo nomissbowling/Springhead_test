@@ -591,15 +591,17 @@ void CheckOil()
   Vec3d p = po.Pos() / PNS;
   double dx = p.x / FEETINCH + LANE_FEET / 2;
   double dz = p.z + LANE_WIDTH / 2;
-  int ix = (int)(dx * 10);
-  int iz = (int)dz;
+  float h = LANE_FEET / (float)OIL_GRID_ROWS;
+  float w = LANE_WIDTH / (float)OIL_GRID_COLS;
+  int ix = (int)(dx / h);
+  int iz = (int)(dz / w);
   if(ix >= OIL_GRID_ROWS) ix = OIL_GRID_ROWS - 1; else if(ix < 0) ix = 0;
   if(iz >= OIL_GRID_COLS) iz = OIL_GRID_COLS - 1; else if(iz < 0) iz = 0;
   float mu0 = 0.0f; // mu0 (default 0.5f)
   float mu = 0.0f; // mu (default 0.2f)
   float oil = OilGrid[ix][iz];
   if(oil < 0.5f){ mu0 = 5.0f, mu = 2.0f; }
-#if 0
+#if 1
   fprintf(stdout, "(%7.3f %7.3f %7.3f) %7.3f (%7.3f %7.3f)\n",
     dx, p.y, dz, oil, mu0, mu);
 #endif
