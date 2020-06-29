@@ -587,27 +587,34 @@ PHSolidIf *CreateHalfPipe(FWSdkIf *fwSdk, int c, Vec3d pos, Vec3f si, float r)
 
 void CheckOil()
 {
-  float w = LANE_WIDTH / OIL_GRID_COLS;
-  float h = LANE_DEPTH / OIL_GRID_ROWS;
   Posed po = soBall_ref->GetPose();
-  Vec3d p = po.Pos();
-  double d = (p.x / FEETINCH) / PNS + LANE_FEET / 2;
-  fprintf(stdout, "%7.3f\n", d);
+  Vec3d p = po.Pos() / PNS;
+  double dx = p.x / FEETINCH + LANE_FEET / 2;
+  double dz = p.z + LANE_WIDTH / 2;
+  int ix = (int)(dx * 10);
+  int iz = (int)dz;
+  if(ix >= OIL_GRID_ROWS) ix = OIL_GRID_ROWS - 1; else if(ix < 0) ix = 0;
+  if(iz >= OIL_GRID_COLS) iz = OIL_GRID_COLS - 1; else if(iz < 0) iz = 0;
+  float mu0 = 0.0f; // mu0 (default 0.5f)
+  float mu = 0.0f; // mu (default 0.2f)
+  float oil = OilGrid[ix][iz];
+  if(oil < 0.5f){ mu0 = 5.0f, mu = 2.0f; }
+#if 0
+  fprintf(stdout, "(%7.3f %7.3f %7.3f) %7.3f (%7.3f %7.3f)\n",
+    dx, p.y, dz, oil, mu0, mu);
+#endif
   CDBoxIf *b = soLane_ref->GetShape(0)->Cast();
-  if(d < 40.0f){ // oil
-    b->SetStaticFriction(0.5f); // mu0 (default 0.5f)
-    b->SetDynamicFriction(0.0f); // mu (default 0.2f)
-  }else{ // no oil
-    b->SetStaticFriction(0.5f); // mu0 (default 0.5f)
-    b->SetDynamicFriction(20.0f); // mu (default 0.2f)
-  }
+  b->SetStaticFriction(mu0);
+  b->SetDynamicFriction(mu);
 }
 
 void LaneOil()
 {
+  float h = LANE_FEET / (float)OIL_GRID_ROWS;
+  float w = LANE_WIDTH / (float)OIL_GRID_COLS;
   for(int row = 0; row < OIL_GRID_ROWS; ++row){
     for(int col = 0; col < OIL_GRID_COLS; ++col){
-      OilGrid[row][col] = 0.0f;
+      OilGrid[row][col] = (row * h) < 40.0f ? 1.0f : 0.0f;
     }
   }
 }
@@ -713,6 +720,7 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
 
 PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
 {
+#if 1
   float w = 1 - tan(15 * PI / 180);
   float a = sqrt(2.0f) * w;
   float g = (1 + w) / 3;
@@ -720,6 +728,15 @@ PHSolidIf *CreateConvexMeshTetra(FWSdkIf *fwSdk)
   float c = sqrt(3.0f) * w / 6; // == h - sqrt(6.0f) * a / 4;
   std::vector<Vec3f> vertices = {
     {0, h - c, 0}, {w - g, -c, -g}, {1 - g, -c, 1 - g}, {-g, -c, w - g}};
+#else
+  float a = 1.0f;
+  float h = sqrt(6.0f) * a / 3;
+  float c = h / 4; // == sqrt(6.0f) * a / 12;
+  float H = sqrt(3.0f) * a / 2;
+  float C = H / 3;
+  std::vector<Vec3f> vertices = {
+    {0, h - c, 0}, {a / 2, -c, -C}, {0, -c, H - C}, {-a / 2, -c, -C}};
+#endif
   PHSolidDesc desc;
   desc.mass = 0.05;
   desc.inertia *= 0.033;
@@ -998,8 +1015,10 @@ void MyApp::DispInf(FWWinIf *w, FWSceneIf *fwScene, GRRenderIf *grRender)
     nobjects, nsolids, nchildren);
   grRender->DrawFont(Vec2f(sch.x - chr.x * 26, sch.y - chr.y * 14), s);
   Posed po = soBall_ref->GetPose();
-  Vec3d p = po.Pos();
-  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f)", p.x, p.y, p.z);
+  Vec3d p = po.Pos() / PNS;
+  double dx = p.x / FEETINCH + LANE_FEET / 2;
+  double dz = p.z + LANE_WIDTH / 2;
+  sprintf_s(s, sizeof(s), "(%7.3f %7.3f %7.3f)", dx, p.y, dz);
   grRender->DrawFont(Vec2f(sch.x - chr.x * 12, sch.y - chr.y * 12), s);
   Quaterniond q = po.Ori();
 //  Matrix3d m;
