@@ -46,6 +46,7 @@ public:
   virtual ~MyApp();
   virtual void Init(int ac=0, char **av=0);
   virtual void TimerFunc(int id);
+  void DispObjStat();
   void DispInf(FWWinIf *w, FWSceneIf *fwScene, GRRenderIf *grRender);
   virtual void Display();
   virtual void Keyboard(int key, int x, int y);

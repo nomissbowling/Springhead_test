@@ -39,10 +39,13 @@ const float LANE_HEIGHT = 1.0f; // inch
 const float LANE_WIDTH = 41.5f; // inch
 const int LANE_FEET = 60; // feet
 const float LANE_DEPTH = LANE_FEET * FEETINCH; // inch
-const int OIL_GRID_COLS = 39;
-const int OIL_GRID_ROWS = LANE_FEET * 10; // step 0.1 feet
+const int LANE_PIECES_W = 39;
+const int LANE_PIECES_D = LANE_FEET * 10; // step 0.1 feet
+const int OIL_GRID_COLS = LANE_PIECES_W;
+const int OIL_GRID_ROWS = LANE_PIECES_D; // step 0.1 feet
 float OilGrid[OIL_GRID_ROWS][OIL_GRID_COLS];
 bool dynPins = true;
+PHSolidIf *so_ref = NULL;
 GRMaterialDesc mat_desc = GRMaterialDesc( // common
   Vec4f(0.8f, 0.8f, 0.8f, 1.0f), // ambient
   Vec4f(0.6f, 0.6f, 0.6f, 1.0f), // diffuse
@@ -123,7 +126,7 @@ PHSolidIf **RotAllParts(PHSolidIf **so, int n, Quaterniond qt)
   return so;
 }
 
-void CreatePanel(FWSdkIf *fwSdk, Vec3f p, float r) // only for texture TEST
+PHSolidIf *CreatePanel(FWSdkIf *fwSdk, Vec3f p, float r) // only for texture TEST
 {
   std::vector<Vec3f> vertices = {
     {0, 0, 0}, {r, 0, 0}, {0, r, 0}, {0, 0, r},
@@ -133,6 +136,7 @@ void CreatePanel(FWSdkIf *fwSdk, Vec3f p, float r) // only for texture TEST
   desc.inertia *= 0.033;
   PHSolidIf *cvx = fwSdk->GetScene(0)->GetPHScene()->CreateSolid(desc);
   cvx->SetDynamical(false);
+  cvx->SetGravity(false);
   cvx->SetMass(1000.0);
   CDConvexMeshDesc cmd;
   cmd.vertices = vertices;
@@ -178,6 +182,8 @@ void CreatePanel(FWSdkIf *fwSdk, Vec3f p, float r) // only for texture TEST
   fwObj->SetPHSolid(cvx);
   fwObj->SetGRFrame(frm);
   fwSdk->GetScene(0)->Sync();
+
+  return cvx;
 }
 
 Vec3f AxisVert3f(float i, float j, float k, Axis ax=Axis::Z)
@@ -617,7 +623,7 @@ void CheckOil()
   float mu = 0.0f; // mu (default 0.2f)
   float oil = OilGrid[ix][iz];
   if(oil < 0.5f){ mu0 = 5.0f, mu = 2.0f; }
-#if 1
+#if 0
   fprintf(stdout, "(%7.3f %7.3f %7.3f) %7.3f (%7.3f %7.3f)\n",
     dx, p.y, dz, oil, mu0, mu);
 #endif
@@ -675,62 +681,82 @@ ball r = 4.25 inch /12 -> 0.35416... feet diameter 8.5 inch 5-16 pounds
   LaneOil();
   PHSolidIf *soPins = CreatePinsTriangle(fwSdk, GRRenderBaseIf::GOLD,
     pos + Vec3d(lnd / 2.0f, lnh / 2.0f, 0.0), r);
+
+  float w = LANE_WIDTH / (float)LANE_PIECES_W;
 /*
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 3.2f), BALL_R, r);
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, w * 3.2f), BALL_R, r);
   soBall->SetMass(0.9);
   soBall->SetVelocity(Vec3d(lnd * r / 2.4, 0.0, 0.0));
   soBall->SetAngularVelocity(Vec3d(-5.0, 2.0, -5.0));
 */
 /* // hooking point 50ft ? 7pin only or left gutter
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.9);
   soBall->SetVelocity(Vec3d(lnd * r / 6.0 / 2.4, 0.0, -38.0 * r / 2.4));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -17.5 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? 10pin tap
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.0 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? just ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.4 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 50ft ? 9pin tap
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 3.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 3.6, 0.0, 6.0 * -19.5 * r / 3.6));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
 /* // hooking point 40ft ?
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(lnd / 6.0f, lnh / 2.0f, lnw / 39.0f * 19.9f), BALL_R, r);
+    pos + Vec3d(lnd / 6.0f, lnh / 2.0f, w * 19.9f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 3.0 * -19.3 * r / 4.8));
   soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0));
 */
-// straight and AR AT (-Ix, 0, -Iz)
+#if 0
+// straight and AR AT (-Ix, 0, -Iz) just pocket
   PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
-    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, lnw / 39.0f * 16.0f), BALL_R, r);
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, w * 16.0f), BALL_R, r);
   soBall->SetMass(0.85);
   soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 0.0));
 //  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0)); // straight 10 pin
   soBall->SetAngularVelocity(Vec3d(-20.0, 0.0, -10.0));
+#endif
+#if 0
+// straight and AR AT (-Ix, 0, -Iz) hit 7 pin
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, w * 16.0f), BALL_R, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, 0.0));
+//  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0)); // straight 10 pin
+  soBall->SetAngularVelocity(Vec3d(-40.0, 0.0, -10.0));
+#endif
+// out side straight and AR AT (-Ix, 0, -Iz) hook 4-7-10
+  PHSolidIf *soBall = CreateBall(fwSdk, GRRenderBaseIf::BLUEVIOLET,
+    pos + Vec3d(-lnd / 2.0f, lnh / 2.0f, 0.0f), BALL_R, r);
+  soBall->SetMass(0.85);
+  soBall->SetVelocity(Vec3d(lnd * r / 4.8, 0.0, lnw * r / 2.6));
+//  soBall->SetAngularVelocity(Vec3d(0.0, 0.0, 0.0)); // straight 10 pin
+  soBall->SetAngularVelocity(Vec3d(-100.0, 0.0, -10.0));
 
   soBall_ref = soBall;
   return soLane;
@@ -990,6 +1016,7 @@ void MyApp::TimerFunc(int id)
 {
   ++tick;
 //  FWApp::TimerFunc(id); // skip default
+  DispObjStat();
   CheckOil(); // each times set lane mu before call Step()
   GetSdk()->Step();
 //  for(int i = 0; i < W; ++i) GetWin(i)->GetScene()->Step(); // speed x W
@@ -999,6 +1026,26 @@ void MyApp::TimerFunc(int id)
     PostRedisplay();
   }
   SetCurrentWin(GetWin(0));
+}
+
+void MyApp::DispObjStat()
+{
+  if(!so_ref) return;
+#if 0
+  Quaterniond q; // q 1 0 0 0 (Theta: 0 Axis: [NaN NaN NaN])
+#else
+  Quaterniond q = so_ref->GetOrientation(); // q 1 0 0 0 ->(timer) +rad axis[-]
+  // Matrix3d m = so_ref->GetRotation(); // same as q.ToMatrix(m);
+#endif
+  Vec3d a = q.V(); // q.Axis(); // template TVec3<double> compile error
+  double angle = q.Theta();
+  fprintf(stdout, "Theta: %7.3f Vec3: (%7.3f %7.3f %7.3f)\n",
+    angle, a.x, a.y, a.z);
+  fprintf(stdout, "Quaterniond: (%7.3f %7.3f %7.3f %7.3f)\n",
+    q.w, q.x, q.y, q.z);
+  double ss = sin(angle/2);
+  fprintf(stdout, "Theta: %7.3f Axis: [%7.3f %7.3f %7.3f]\n",
+    angle, q.x / ss, q.y / ss, q.z / ss);
 }
 
 void MyApp::DispInf(FWWinIf *w, FWSceneIf *fwScene, GRRenderIf *grRender)
@@ -1132,7 +1179,8 @@ void MyApp::Keyboard(int key, int x, int y)
       Vec3d(0, 6, 0), BALL_R, PNS);
     soBall->SetMass(0.85);
     soBall->SetVelocity(Vec3d(0.0, 0.0, 0.0));
-    soBall->SetAngularVelocity(Vec3d(0.0, 0.0, -100.0));
+    // soBall->SetAngularVelocity(Vec3d(0.0, 0.0, -100.0));
+    soBall->SetAngularVelocity(Vec3d(-20.0, 0.0, -10.0));
   } break;
   case '-':
     DSTR << "convexmeshcube" << std::endl;
@@ -1307,7 +1355,12 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
   GRFrameIf *frm = fwScene->GetGRScene()->GetWorld();
 */
 
-//  CreatePanel(fwSdk, Vec3f(0, 0, 0), 3.0f); // only for texture TEST
+#if 0
+  so_ref = CreatePanel(fwSdk, Vec3f(0, 0, 0), 3.0f); // only for texture TEST
+  // so_ref->SetAngularVelocity(Vec3d(0.0, 0.0, -10.0)); // rad +0.5 [0 0 -1]
+  // so_ref->SetAngularVelocity(Vec3d(-20.0, 0.0, 0.0)); // rad +1.0 [-1 0 0]
+  so_ref->SetAngularVelocity(Vec3d(-20.0, 0.0, -10.0)); // rad +1.118 [-0.894 0 -0.447]
+#endif
 
 #if 0
   Quaterniond q = Quaterniond::Rot(Rad(45.0), Vec3d(1, 1, 1));
@@ -1319,6 +1372,7 @@ fprintf(stdout, "%20.17f sec\n", phScene->GetTimeStep() * phScene->GetCount());
 
   PHSolidIf *floor = phScene->CreateSolid();
   floor->SetDynamical(false);
+  floor->SetGravity(false);
   floor->SetMass(10000.0);
   bd.boxsize = Vec3f(20.0f, 0.1f, 20.0f);
   floor->AddShape(phSdk->CreateShape(bd));
