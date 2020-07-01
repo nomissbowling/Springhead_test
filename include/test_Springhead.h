@@ -40,12 +40,14 @@ struct MyWinDescPart {
 class MyApp : public FWApp {
 public:
   bool bDrawInfo;
+  Vec3f orbit[1000]; // > 600 ?
   unsigned long tick;
 public:
   MyApp();
   virtual ~MyApp();
   virtual void Init(int ac=0, char **av=0);
   virtual void TimerFunc(int id);
+  void DrawOrbit(GRRenderIf *grRender);
   void DispObjStat();
   void DispInf(FWWinIf *w, FWSceneIf *fwScene, GRRenderIf *grRender);
   virtual void Display();

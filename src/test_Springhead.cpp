@@ -1028,6 +1028,24 @@ void MyApp::TimerFunc(int id)
   SetCurrentWin(GetWin(0));
 }
 
+void MyApp::DrawOrbit(GRRenderIf *grRender)
+{
+  Posed po = soBall_ref->GetPose();
+  Vec3d rp = po.Pos();
+  if(tick < 2){
+    float lnd = LANE_DEPTH * PNS;
+    orbit[tick] = Vec3f(-lnd / 2.0f, rp.y, 0.0f);
+  }
+  unsigned long sz = sizeof(orbit) / sizeof(orbit[0]);
+  unsigned long t = (tick + 1) < sz ? (tick + 1) : sz - 1;
+  orbit[t] = rp;
+  for(unsigned long i = 1; i < t; ++i){
+    float fx = orbit[i + 1].x / PNS / FEETINCH + LANE_FEET / 2;
+    if(fx > 63.0f) break; // >= LANE_FEET + LST > LANE_FEET + PSD
+    grRender->DrawLine(orbit[i], orbit[i + 1]);
+  }
+}
+
 void MyApp::DispObjStat()
 {
   if(!so_ref) return;
@@ -1149,6 +1167,7 @@ void MyApp::Display()
   //fwScene->Draw(grRender, true); // force true PH only
   //fwScene->Draw(grRender, false); // force false GR only
   //fwScene->Draw(grRender); // normal (not set debug=false) see FWScene.cpp
+  DrawOrbit(grRender);
   if(id == WinID[W - 1]) DispInf(w, fwScene, grRender); // WIN_DEBUG
   grRender->EndScene();
   grRender->SwapBuffers();
