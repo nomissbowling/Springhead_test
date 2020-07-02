@@ -64,6 +64,13 @@ environment path
 - Springhead/dependency/bin/win32
 
 
+FBX SDK
+-------
+
+- [FBX SDK test](https://github.com/nomissbowling/Autodesk_FBX_SDK_test)
+- [Autodesk FBX SDK](https://www.autodesk.com/developer-network/platform-technologies/fbx-sdk-2020-0)
+
+
 Springhead
 ----------
 
