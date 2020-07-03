@@ -45,7 +45,7 @@ source path
 include path
 - ../../Springhead_test/include
 - ../../Springhead/core/include
-- ../../Springhead/core/src (need to use .hpp etc)
+- ../../Springhead/core/src (need to use .hpp etc) (now no longer needed: fixed original Springhead commit bfbfaa89a6f5e079799f2c68ee684dfd2e3258df)
 
 library path
 - ../../Springhead/generated/lib/win64
